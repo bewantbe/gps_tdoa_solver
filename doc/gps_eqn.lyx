@@ -86,12 +86,58 @@ GPS equation
 \end_layout
 
 \begin_layout Standard
+Original form:
 \begin_inset Formula 
 \begin{equation}
-\left\{ \begin{gathered}\left\Vert \vec{r}-\vec{p}_{1}\right\Vert ^{2}-\left((t_{1}+T)c\right)^{2}=0\\
-\left\Vert \vec{r}-\vec{p}_{2}\right\Vert ^{2}-\left((t_{2}+T)c\right)^{2}=0\\
+\left\{ \begin{gathered}\left\Vert \vec{r}-\vec{p}_{1}\right\Vert _{2}=(t_{1}+T)c\\
+\left\Vert \vec{r}-\vec{p}_{2}\right\Vert _{2}=(t_{2}+T)c\\
 \vdots\\
-\left\Vert \vec{r}-\vec{p}_{m}\right\Vert ^{2}-\left((t_{m}+T)c\right)^{2}=0
+\left\Vert \vec{r}-\vec{p}_{m}\right\Vert _{2}=(t_{m}+T)c
+\end{gathered}
+\right.
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Or, expressed in terms of the pseudorange measurements 
+\begin_inset Formula $\{ct_{i}\}$
+\end_inset
+
+ and clock offset 
+\begin_inset Formula $b=-Tc$
+\end_inset
+
+
+\begin_inset Formula 
+\begin{equation}
+\left\{ \begin{gathered}\left\Vert \vec{r}-\vec{p}_{1}\right\Vert _{2}+b=ct_{1}\\
+\left\Vert \vec{r}-\vec{p}_{2}\right\Vert _{2}+b=ct_{2}\\
+\vdots\\
+\left\Vert \vec{r}-\vec{p}_{m}\right\Vert _{2}+b=ct_{m}
+\end{gathered}
+\right.
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Quadratic form used in this note:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+\left\{ \begin{gathered}\left\Vert \vec{r}-\vec{p}_{1}\right\Vert _{2}^{2}-\left((t_{1}+T)c\right)^{2}=0\\
+\left\Vert \vec{r}-\vec{p}_{2}\right\Vert _{2}^{2}-\left((t_{2}+T)c\right)^{2}=0\\
+\vdots\\
+\left\Vert \vec{r}-\vec{p}_{m}\right\Vert _{2}^{2}-\left((t_{m}+T)c\right)^{2}=0
 \end{gathered}
 \right.
 \end{equation}
@@ -169,7 +215,7 @@ then the minimization problem
 can be solved through least square
 \begin_inset Formula 
 \[
-\frac{\partial F(q_{0})}{\partial q}\Delta q\approx-F(q_{0})
+\frac{\partial F(q_{0})}{\partial q}\Delta q\sim-F(q_{0})
 \]
 
 \end_inset
@@ -182,15 +228,48 @@ can be solved through least square
 
 \end_inset
 
+where the 
+\begin_inset Formula $\dagger$
+\end_inset
 
-\end_layout
-
-\begin_layout Standard
+ means Moore-Penrose inverse.
+ 
+\emph on
 i.e.
+
+\emph default
  the iteration scheme is
 \begin_inset Formula 
 \[
 q_{n+1}=q_{n}-\left(\frac{\partial F(q_{n})}{\partial q}\right)^{\dagger}F(q_{n}).
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsubsection
+Gauss-Newton iteration
+\end_layout
+
+\begin_layout Standard
+The function 
+\begin_inset Formula $F$
+\end_inset
+
+ have a special structure so that
+\begin_inset Formula 
+\[
+J^{T}J\Delta q\approx J^{T}(-F)
+\]
+
+\end_inset
+
+
+\begin_inset Formula 
+\[
+\Delta q=-\left(J^{T}J\right)^{-1}J^{T}(-F)
 \]
 
 \end_inset
