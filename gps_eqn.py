@@ -293,6 +293,10 @@ def SolverStat(p_orig, ct_orig, r_true, ct0, err_pos, err_ct, p_c, n_c):
         elif solver == 'NewtonConstraint':
             r_n, ct0_n = NewtonIterGPSConstraint(p, ct, r_true, ct0, p_c, n_c)
         arr_pos[i] = r_n
+    
+    s_cov = np.cov(arr_pos.T)
+    print('s_cov\n', s_cov)
+    print('GDOP stat:', np.sqrt(np.trace(s_cov)))
     # plot arr_pos in 3D with matplotlib
     plt.figure()
     plt.gca()
@@ -305,7 +309,7 @@ def DrawCovEclipse(ax, r, ct0, Omega):
     # Covariance matrix
     #cov = np.array([[1, 0, 0], [0, 2, 0], [0, 0, 3]])
     cov = Omega[:3, :3]
-    print(cov)
+    print('cov\n', cov)
 
     # Compute the eigenvalues and eigenvectors
     eigvals, eigvecs = np.linalg.eig(cov)
@@ -381,4 +385,5 @@ if __name__ == '__main__':
 
     if 1:
         Omega = GetErrorEclipsed(p_orig, ct_orig, r_true, ct0, err_pos, err_ct, n_c)
+        print('GDOP =', np.sqrt(np.trace(Omega[:3, :3])))
         DrawCovEclipse(ax, r_true, ct0, Omega)
