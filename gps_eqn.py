@@ -44,7 +44,7 @@ def gen_sound_data_5p():
     #      (https://www.engineeringtoolbox.com/air-speed-sound-d_603.html)
     # Ref. https://sengpielaudio.com/calculator-airpressure.htm
     c = 20.05 * (273.16 + temp) ** 0.5
-    print(f'Sound speed {c:.2f} m/s, at temperature {temp} C.')
+    #print(f'Sound speed {c:.2f} m/s, at temperature {temp} C.')
 
     m = 5            # number of microphones
 
@@ -66,17 +66,17 @@ def gen_sound_data_5p():
     ct0 = ct[0]
     ct[0] = ct[0] - ct0
 
-    # noise level
-    err_pos = 0.2e-3                 # default 0.2mm
-    sample_rate = 250e3              # default 250kHz
-    err_ct = c * 2.0 / sample_rate   # default 2 samples
-
-    # add measurement noise
-    for j in range(m):
-        p[j]  = p[j]  + err_pos * np.random.randn(3)
-        ct[j] = ct[j] + err_ct  * np.random.randn()
-
     return p, ct, r_true, ct0
+
+def add_noise_sound_data_5p(p, ct, err_pos, err_ct):
+    # add measurement noise
+    p_measure  = p.copy()
+    ct_measure = ct.copy()
+    for j in range(len(ct)):
+        p_measure[j]  = p[j]  + err_pos * np.random.randn(3)
+        ct_measure[j] = ct[j] + err_ct  * np.random.randn()
+
+    return p_measure, ct_measure
 
 def gen_gps_data_d4():
     # receiver position (unit: m)
@@ -264,11 +264,11 @@ def verify_K(p, ct, r_true, ct0):
     j = 1
     print(-2*(r_true-p[j]), -2*(ct[j]+ct0))
 
-def SolverStat():
+def SolverStat(p_orig, ct_orig, r_true, ct0, err_pos, err_ct):
     solver='Newton'
     arr_pos = np.zeros((100,3))
     for i in range(100):
-        p, ct, r_true, ct0 = gen_sound_data_5p()
+        p, ct = add_noise_sound_data_5p(p_orig, ct_orig, err_pos, err_ct)
         if solver == 'Newton':
             r_n, ct0_n = NewtonIterGPS(p, ct, r_true, ct0)
         elif solver == 'NewtonConstraint':
@@ -322,7 +322,13 @@ def DrawCovEclipse(ax, r, ct0, Omega):
 
 if __name__ == '__main__':
 
-    p, ct, r_true, ct0 = gen_sound_data_5p()
+    # noise level
+    err_pos = 0.2e-4                 # default 0.2mm
+    sample_rate = 250e3              # default 250kHz
+    err_ct = 340 * 2.0e-1 / sample_rate   # default 2 samples
+
+    p_orig, ct_orig, r_true, ct0 = gen_sound_data_5p()
+    p, ct = add_noise_sound_data_5p(p_orig, ct_orig, err_pos, err_ct)
     #print(p)
     #print(ct)
     print('r_true', r_true)
@@ -354,11 +360,11 @@ if __name__ == '__main__':
         verify_K(p, ct, r_true, ct0)
 
     if 1:
-        ax = SolverStat()
+        ax = SolverStat(p_orig, ct_orig, r_true, ct0, err_pos, err_ct)
 
     if 1:
-        err_pos = 0.2e-3
+        err_pos = 0.2e-4
         sample_rate = 250e3
-        err_ct = 2.0 / sample_rate * 340.0
-        Omega = GetErrorEclipsed(p, ct, r_n, ct0_n, err_pos, err_ct)
-        DrawCovEclipse(ax, r_n, ct0_n, Omega)
+        err_ct = 2.0e-1 / sample_rate * 340.0
+        Omega = GetErrorEclipsed(p_orig, ct_orig, r_true, ct0, err_pos, err_ct)
+        DrawCovEclipse(ax, r_true, ct0, Omega)
