@@ -91,7 +91,8 @@ def GPS_F(p, ct, r, ct0):
 def GPS_dF_dr(p, ct, r, ct0):
     m = len(ct)
     dF = jnp.array([
-        2 * (r - p[j]) for j in range(m)
+        2 * (r - p[j])
+        for j in range(m)
     ])
     return dF
 #print(_a([2*(r_true - p[j]) for j in range(5)]))
@@ -99,7 +100,8 @@ def GPS_dF_dr(p, ct, r, ct0):
 def GPS_dF_dt(p, ct, r, ct0):
     m = len(ct)
     dF = jnp.array([
-        -2 * (ct0 + ct[j]) for j in range(m)
+        -2 * (ct0 + ct[j])
+        for j in range(m)
     ])
     return dF
 
@@ -123,12 +125,28 @@ if 0:
     print(GPS_dF_dr(p, ct, r_true, ct0))
     print(GPS_dF_dt(p, ct, r_true, ct0))
 
-def NewtonIter(p, ct, r_n, ct0_n):
-    print('r_n', r_n)
-    print('ct0_n', ct0_n)
+def NewtonIter(F, dF_dx, x_init, max_iter=10, tol=1e-7):
+    """Newton's method for solving F(x) = 0 in least square sense."""
+    x = x_init
+    print('x0', x)
+    for i in range(max_iter):
+        J = dF_dx(x)
+        F_val = F(x)
+        delta = jnp.linalg.lstsq(J, -F_val, rcond=None)[0].flatten()
+        x = x + delta
+        print('x', x)
+        if jnp.linalg.norm(delta) < tol:
+            break
+    print('n_iter =', i)
 
-    # solve by newton's method
-    for i in range(7):
+    return x
+
+def NewtonIterGPS0(p, ct, r_n, ct0_n):
+    print('init: r_n', r_n)
+    print('init: ct0_n', ct0_n)
+
+    # solve by Newton's method
+    for i in range(10):
         J = GPS_dF_dparam(p, ct, r_n, ct0_n)
         F_val = GPS_F(p, ct, r_n, ct0_n)
         #print(J)
@@ -139,15 +157,27 @@ def NewtonIter(p, ct, r_n, ct0_n):
         ct0_n = ct0_n + delta[3]
         if jnp.linalg.norm(delta) < 1e-7:
             break
-
-    print('Solution:')
     print('n_iter =', i)
-    print('r_n', r_n)
-    print('ct0_n', ct0_n)
 
     return r_n, ct0_n
 
-r_n, ct0_n = NewtonIter(p, ct, r_true, ct0)
+def NewtonIterGPS(p, ct, r_n, ct0_n):
+    #q0 = jnp.hstack([r_n, ct0_n])
+    q0 = np.hstack([r_n, ct0_n])
+    F  = lambda q: GPS_F(p, ct, q[:3], q[3])
+    dF = lambda q: GPS_dF_dparam(p, ct, q[:3], q[3])
+    q = NewtonIter(F, dF, q0)
+    return q[:3], q[3]
+
+r_n, ct0_n = NewtonIterGPS0(p, ct, r_true, ct0)
+print('Solution0:')
+print('r_n', r_n)
+print('ct0_n', ct0_n)
+
+r_n, ct0_n = NewtonIterGPS(p, ct, r_true, ct0)
+print('Solution:')
+print('r_n', r_n)
+print('ct0_n', ct0_n)
 
 if 0:
     # For verification of derivatives
