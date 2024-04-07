@@ -323,9 +323,9 @@ def DrawCovEclipse(ax, r, ct0, Omega):
 if __name__ == '__main__':
 
     # noise level
-    err_pos = 0.2e-4                 # default 0.2mm
+    err_pos = 0.2e-3                 # default 0.2mm
     sample_rate = 250e3              # default 250kHz
-    err_ct = 340 * 2.0e-1 / sample_rate   # default 2 samples
+    err_ct = 340 * 2.0e-0 / sample_rate   # default 2 samples
 
     p_orig, ct_orig, r_true, ct0 = gen_sound_data_5p()
     p, ct = add_noise_sound_data_5p(p_orig, ct_orig, err_pos, err_ct)
@@ -363,8 +363,5 @@ if __name__ == '__main__':
         ax = SolverStat(p_orig, ct_orig, r_true, ct0, err_pos, err_ct)
 
     if 1:
-        err_pos = 0.2e-4
-        sample_rate = 250e3
-        err_ct = 2.0e-1 / sample_rate * 340.0
         Omega = GetErrorEclipsed(p_orig, ct_orig, r_true, ct0, err_pos, err_ct)
         DrawCovEclipse(ax, r_true, ct0, Omega)
