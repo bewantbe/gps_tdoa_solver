@@ -75,10 +75,6 @@ def gen_sound_data_5p():
 
     return p, ct, r_true, ct0
 
-p, ct, r_true, ct0 = gen_sound_data_5p()
-#print(p)
-#print(ct)
-
 def GPS_F(p, ct, r, ct0):
     m = len(ct)
     v = jnp.array([
@@ -94,7 +90,6 @@ def GPS_dF_dr(p, ct, r, ct0):
         for j in range(m)
     ])
     return dF
-#print(_a([2*(r_true - p[j]) for j in range(5)]))
 
 def GPS_dF_dt(p, ct, r, ct0):
     m = len(ct)
@@ -108,21 +103,6 @@ def GPS_dF_dparam(p, ct, r, ct0):
     J = jnp.hstack([GPS_dF_dr(p, ct, r, ct0),
                     GPS_dF_dt(p, ct, r, ct0)[:, jnp.newaxis]])
     return J
-
-print('GPS_F =', GPS_F(p, ct, r_true, ct0))
-
-if 0:
-    # For verification of derivatives
-
-    # Get jacobian of GPS_F with respect to r
-    dF_dr_auto = jacrev(GPS_F, argnums=2)
-    dF_dt_auto = jacrev(GPS_F, argnums=3)
-
-    print(dF_dr_auto(p, ct, r_true, ct0))
-    print(dF_dt_auto(p, ct, r_true, ct0))
-
-    print(GPS_dF_dr(p, ct, r_true, ct0))
-    print(GPS_dF_dt(p, ct, r_true, ct0))
 
 def NewtonIter(F, dF_dx, x_init, max_iter=10, tol=1e-7):
     """Newton's method for solving F(x) = 0 in least square sense."""
@@ -148,18 +128,6 @@ def NewtonIterGPS(p, ct, r_n, ct0_n):
     q = NewtonIter(F, dF, q0)
     return q[:3], q[3]
 
-r_n, ct0_n = NewtonIterGPS(p, ct, r_true, ct0)
-print('Solution:')
-print('r_n', r_n)
-print('ct0_n', ct0_n)
-
-if 0:
-    # For verification of derivatives
-    dF_dp_auto = jacrev(GPS_F, argnums=0)
-    print(dF_dp_auto(p, ct, r_true, ct0))
-    j = 0
-    print(-2*(r_true-p[j]), -2*(ct[j]+ct0))
-
 def GetK(r, ct0, p, ct, err_pos, err_ct):
     m = len(ct)
     K = jnp.array([
@@ -167,3 +135,42 @@ def GetK(r, ct0, p, ct, err_pos, err_ct):
         for j in range(m)
     ])
     return K
+
+def verify_dF(p, ct, r_true, ct0):
+    # For verification of derivatives
+
+    # Get jacobian of GPS_F with respect to r
+    dF_dr_auto = jacrev(GPS_F, argnums=2)
+    dF_dt_auto = jacrev(GPS_F, argnums=3)
+
+    print(dF_dr_auto(p, ct, r_true, ct0))
+    print(dF_dt_auto(p, ct, r_true, ct0))
+
+    print(GPS_dF_dr(p, ct, r_true, ct0))
+    print(GPS_dF_dt(p, ct, r_true, ct0))
+
+def verify_K(p, ct, r_true, ct0):
+    # For verification of K matrix
+    dF_dp_auto = jacrev(GPS_F, argnums=0)
+    print(dF_dp_auto(p, ct, r_true, ct0))
+    j = 0
+    print(-2*(r_true-p[j]), -2*(ct[j]+ct0))
+
+if __name__ == '__main__':
+
+    p, ct, r_true, ct0 = gen_sound_data_5p()
+    #print(p)
+    #print(ct)
+
+    #print('GPS_F =', GPS_F(p, ct, r_true, ct0))
+
+    if 0:
+        verify_dF(p, ct, r_true, ct0)
+
+    if 0:
+        verify_K(p, ct, r_true, ct0)
+
+    r_n, ct0_n = NewtonIterGPS(p, ct, r_true, ct0)
+    print('Solution:')
+    print('r_n', r_n)
+    print('ct0_n', ct0_n)
