@@ -86,7 +86,15 @@ GPS equation
 \end_layout
 
 \begin_layout Standard
-Original form:
+Original form 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "2024globalpositioning"
+literal "true"
+
+\end_inset
+
+:
 \begin_inset Formula 
 \begin{equation}
 \left\{ \begin{gathered}\left\Vert \vec{r}-\vec{p}_{1}\right\Vert _{2}=(t_{1}+T)c\\
@@ -290,7 +298,19 @@ For now we may try different initial values.
 \end_layout
 
 \begin_layout Subsection
-Other way to solve the quadratic system
+Direct solution
+\end_layout
+
+\begin_layout Standard
+See 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "bancroft1985analgebraic"
+literal "true"
+
+\end_inset
+
+.
 \end_layout
 
 \begin_layout Section
@@ -347,6 +367,18 @@ we have corrected solution
 \end_inset
 
 
+\end_layout
+
+\begin_layout Standard
+See also 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "bancroft1985analgebraic,2024globalpositioning"
+literal "true"
+
+\end_inset
+
+.
 \end_layout
 
 \begin_layout Subsection
@@ -437,6 +469,53 @@ we got
 Constraint solution to a plane
 \end_layout
 
+\begin_layout Standard
+For example we may extend 
+\begin_inset Formula $F$
+\end_inset
+
+ by:
+\begin_inset Formula 
+\[
+\left\{ \begin{gathered}F(p,q)=0\\
+(\vec{r}-\vec{p}_{c})\cdot\vec{n}=0
+\end{gathered}
+\right.
+\]
+
+\end_inset
+
+i.e.
+ 
+\begin_inset Formula $\bar{F}=\left[F;(\vec{r}-\vec{p}_{c})\cdot\vec{n}\right]$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+In this case,
+\begin_inset Formula 
+\[
+\frac{\partial\bar{F}(p,q)}{\partial q}=\begin{bmatrix}\frac{\partial F(p,q)}{\partial q}\\
+\begin{bmatrix}\vec{n}_{x} & \vec{n}_{y} & \vec{n}_{z} & 0\end{bmatrix}
+\end{bmatrix}.
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The usual Newton's method is then proceed.
+ We may also tune the length 
+\begin_inset Formula $\left\Vert \vec{n}\right\Vert _{2}$
+\end_inset
+
+ for adjusting the weight for constraint in LSM.
+\end_layout
+
 \begin_layout Section
 Supplimentary
 \end_layout
@@ -516,6 +595,18 @@ Derivatives
 0 &  & -(\vec{r}-\vec{p}_{m})^{T} & -((t_{m}+T)c)
 \end{array}\right].
 \]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset CommandInset bibtex
+LatexCommand bibtex
+btprint "btPrintCited"
+bibfiles "gps"
+options "plain"
 
 \end_inset
 
