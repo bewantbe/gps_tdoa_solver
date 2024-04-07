@@ -229,9 +229,25 @@ def GetK(p, ct, r, ct0):
     K = - jnp.linalg.lstsq(dF_dq, dF_dp, rcond=None)[0]
     return K
 
-def GetErrorEclipsed(p, ct, r, ct0, err_pos, err_ct):
+def GetK_Constraint(p, ct, r, ct0, n_c):
     m = len(ct)
-    K = GetK(p, ct, r, ct0)
+    A = -2 * jnp.hstack([r[np.newaxis, :] - p, ct0 + ct[:, jnp.newaxis]])
+    dF_dp = jnp.vstack([
+        jnp.hstack([jnp.zeros((1, 4*j)), A[j:j+1, :], jnp.zeros((1, 4*(m-j-1)))])
+        for j in range(m)
+    ])
+    dF_dp = jnp.vstack([dF_dp, jnp.zeros((1, 4*m))])
+    dF_dq = GPS_dF_dq(p, ct, r, ct0)
+    dF_dq = jnp.vstack([dF_dq, jnp.hstack([n_c, 0])])
+    K = - jnp.linalg.lstsq(dF_dq, dF_dp, rcond=None)[0]
+    return K
+
+def GetErrorEclipsed(p, ct, r, ct0, err_pos, err_ct, n_c = None):
+    m = len(ct)
+    if n_c is None:
+        K = GetK(p, ct, r, ct0)
+    else:
+        K = GetK_Constraint(p, ct, r, ct0, n_c)
     # error matrix of p and ct
     Lambda = jnp.diag(
         jnp.tile(
@@ -264,16 +280,17 @@ def verify_K(p, ct, r_true, ct0):
     j = 1
     print(-2*(r_true-p[j]), -2*(ct[j]+ct0))
 
-def SolverStat(p_orig, ct_orig, r_true, ct0, err_pos, err_ct):
-    solver='Newton'
+def SolverStat(p_orig, ct_orig, r_true, ct0, err_pos, err_ct, p_c, n_c):
+    if n_c is None:
+        solver='Newton'
+    else:
+        solver='NewtonConstraint'
     arr_pos = np.zeros((100,3))
     for i in range(100):
         p, ct = add_noise_sound_data_5p(p_orig, ct_orig, err_pos, err_ct)
         if solver == 'Newton':
             r_n, ct0_n = NewtonIterGPS(p, ct, r_true, ct0)
         elif solver == 'NewtonConstraint':
-            p_c = _a([0, 0, r_true[2]])
-            n_c = _a([0, 0, 1]) * 0.05
             r_n, ct0_n = NewtonIterGPSConstraint(p, ct, r_true, ct0, p_c, n_c)
         arr_pos[i] = r_n
     # plot arr_pos in 3D with matplotlib
@@ -360,8 +377,8 @@ if __name__ == '__main__':
         verify_K(p, ct, r_true, ct0)
 
     if 1:
-        ax = SolverStat(p_orig, ct_orig, r_true, ct0, err_pos, err_ct)
+        ax = SolverStat(p_orig, ct_orig, r_true, ct0, err_pos, err_ct, p_c, n_c)
 
     if 1:
-        Omega = GetErrorEclipsed(p_orig, ct_orig, r_true, ct0, err_pos, err_ct)
+        Omega = GetErrorEclipsed(p_orig, ct_orig, r_true, ct0, err_pos, err_ct, n_c)
         DrawCovEclipse(ax, r_true, ct0, Omega)

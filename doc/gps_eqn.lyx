@@ -499,6 +499,16 @@ In this case,
 \[
 \frac{\partial\bar{F}(p,q)}{\partial q}=\begin{bmatrix}\frac{\partial F(p,q)}{\partial q}\\
 \begin{bmatrix}\vec{n}_{x} & \vec{n}_{y} & \vec{n}_{z} & 0\end{bmatrix}
+\end{bmatrix},
+\]
+
+\end_inset
+
+
+\begin_inset Formula 
+\[
+\frac{\partial\bar{F}(p,q)}{\partial p}=\begin{bmatrix}\frac{\partial F(p,q)}{\partial p}\\
+\begin{bmatrix}0 & 0 & \ldots & 0\end{bmatrix}
 \end{bmatrix}.
 \]
 
