@@ -64,9 +64,9 @@ def gen_sound_data_5p():
     ct[0] = ct[0] - ct0
 
     # noise level
-    err_pos = 0* 0.2e-3                 # default 0.2mm
+    err_pos = 0.2e-3                 # default 0.2mm
     sample_rate = 250e3              # default 250kHz
-    err_ct = 0* c * 2.0 / sample_rate   # default 2 samples
+    err_ct = c * 2.0 / sample_rate   # default 2 samples
 
     # add measurement noise
     for j in range(m):
@@ -76,9 +76,8 @@ def gen_sound_data_5p():
     return p, ct, r_true, ct0
 
 p, ct, r_true, ct0 = gen_sound_data_5p()
-
-print(p)
-print(ct)
+#print(p)
+#print(ct)
 
 def GPS_F(p, ct, r, ct0):
     m = len(ct)
@@ -128,38 +127,18 @@ if 0:
 def NewtonIter(F, dF_dx, x_init, max_iter=10, tol=1e-7):
     """Newton's method for solving F(x) = 0 in least square sense."""
     x = x_init
-    print('x0', x)
+    #print('x0', x)
     for i in range(max_iter):
         J = dF_dx(x)
         F_val = F(x)
         delta = jnp.linalg.lstsq(J, -F_val, rcond=None)[0].flatten()
         x = x + delta
-        print('x', x)
+        #print('x', x)
         if jnp.linalg.norm(delta) < tol:
             break
-    print('n_iter =', i)
+    #print('n_iter =', i)
 
     return x
-
-def NewtonIterGPS0(p, ct, r_n, ct0_n):
-    print('init: r_n', r_n)
-    print('init: ct0_n', ct0_n)
-
-    # solve by Newton's method
-    for i in range(10):
-        J = GPS_dF_dparam(p, ct, r_n, ct0_n)
-        F_val = GPS_F(p, ct, r_n, ct0_n)
-        #print(J)
-        #print(F_val)
-        delta = jnp.linalg.lstsq(J, -F_val, rcond=None)[0].flatten()
-        #print('delta', delta)
-        r_n   = r_n + delta[:3]
-        ct0_n = ct0_n + delta[3]
-        if jnp.linalg.norm(delta) < 1e-7:
-            break
-    print('n_iter =', i)
-
-    return r_n, ct0_n
 
 def NewtonIterGPS(p, ct, r_n, ct0_n):
     #q0 = jnp.hstack([r_n, ct0_n])
@@ -168,11 +147,6 @@ def NewtonIterGPS(p, ct, r_n, ct0_n):
     dF = lambda q: GPS_dF_dparam(p, ct, q[:3], q[3])
     q = NewtonIter(F, dF, q0)
     return q[:3], q[3]
-
-r_n, ct0_n = NewtonIterGPS0(p, ct, r_true, ct0)
-print('Solution0:')
-print('r_n', r_n)
-print('ct0_n', ct0_n)
 
 r_n, ct0_n = NewtonIterGPS(p, ct, r_true, ct0)
 print('Solution:')
