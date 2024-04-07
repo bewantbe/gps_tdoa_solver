@@ -137,7 +137,7 @@ def GPS_dF_dt(p, ct, r, ct0):
     ])
     return dF
 
-def GPS_dF_dparam(p, ct, r, ct0):
+def GPS_dF_dq(p, ct, r, ct0):
     J = jnp.hstack([GPS_dF_dr(p, ct, r, ct0),
                     GPS_dF_dt(p, ct, r, ct0)[:, jnp.newaxis]])
     return J
@@ -162,7 +162,7 @@ def NewtonIterGPS(p, ct, r_n, ct0_n):
     #q0 = jnp.hstack([r_n, ct0_n])
     q0 = np.hstack([r_n, ct0_n])
     F  = lambda q: GPS_F(p, ct, q[:3], q[3])
-    dF = lambda q: GPS_dF_dparam(p, ct, q[:3], q[3])
+    dF = lambda q: GPS_dF_dq(p, ct, q[:3], q[3])
     q = NewtonIter(F, dF, q0)
     return q[:3], q[3]
 
@@ -174,7 +174,7 @@ def NewtonIterGPSConstraint(p, ct, r_n, ct0_n, p_c, n_c):
             jnp.dot(q[:3] - p_c, n_c)
         ])
     dF = lambda q: jnp.vstack([
-            GPS_dF_dparam(p, ct, q[:3], q[3]),
+            GPS_dF_dq(p, ct, q[:3], q[3]),
             jnp.hstack([n_c, 0])[jnp.newaxis, :]
         ])
     q = NewtonIter(F, dF, q0)
@@ -218,13 +218,29 @@ def DirectGPSSolver(p, ct):
 
     return y[:3], y[3]
 
-def GetK(r, ct0, p, ct, err_pos, err_ct):
+def GetK(p, ct, r, ct0):
     m = len(ct)
-    K = jnp.array([
-        jnp.dot(-2*(r_true-p[j]), p[j]) - 2*(ct[j]+ct0) * ct[j]
+    A = -2 * jnp.hstack([r[np.newaxis, :] - p, ct0 + ct[:, jnp.newaxis]])
+    dF_dp = jnp.vstack([
+        jnp.hstack([jnp.zeros((1, 4*j)), A[j:j+1, :], jnp.zeros((1, 4*(m-j-1)))])
         for j in range(m)
     ])
+    dF_dq = GPS_dF_dq(p, ct, r, ct0)
+    K = - jnp.linalg.lstsq(dF_dq, dF_dp, rcond=None)[0]
     return K
+
+def GetErrorEclipsed(p, ct, r, ct0, err_pos, err_ct):
+    m = len(ct)
+    K = GetK(p, ct, r, ct0)
+    # error matrix of p and ct
+    Lambda = jnp.diag(
+        jnp.tile(
+            jnp.hstack([err_pos**2 * jnp.ones(3),
+                        err_ct**2 * jnp.ones(1)]),
+        m)
+    )
+    Omega = jnp.dot(K, jnp.dot(Lambda, K.T))
+    return Omega
 
 def verify_dF(p, ct, r_true, ct0):
     # For verification of derivatives
@@ -249,7 +265,7 @@ def verify_K(p, ct, r_true, ct0):
     print(-2*(r_true-p[j]), -2*(ct[j]+ct0))
 
 def SolverStat():
-    solver='NewtonConstraint'
+    solver='Newton'
     arr_pos = np.zeros((100,3))
     for i in range(100):
         p, ct, r_true, ct0 = gen_sound_data_5p()
@@ -266,7 +282,43 @@ def SolverStat():
     ax = plt.axes(projection='3d')
     ax.scatter3D(p[:,0], p[:,1], p[:,2], c='r')
     ax.scatter3D(arr_pos[:,0], arr_pos[:,1], arr_pos[:,2], c='b')
+    return ax
 
+def DrawCovEclipse(ax, r, ct0, Omega):
+    # Covariance matrix
+    #cov = np.array([[1, 0, 0], [0, 2, 0], [0, 0, 3]])
+    cov = Omega[:3, :3]
+    print(cov)
+
+    # Compute the eigenvalues and eigenvectors
+    eigvals, eigvecs = np.linalg.eig(cov)
+
+    # Create a grid of points
+    theta = np.linspace(0, 2*np.pi, 100)
+    phi = np.linspace(0, np.pi, 100)
+    x = np.outer(np.cos(theta), np.sin(phi))
+    y = np.outer(np.sin(theta), np.sin(phi))
+    z = np.outer(np.ones_like(theta), np.cos(phi))
+
+    # O = P V * V P^T
+    # X(at 1) -> Z(at O)
+    #    Z = P V X
+    #   E(X X^T) = I
+    #   E(Z Z^T) = P V X X^T V P^T = O
+
+    # Transform the points to the ellipse
+    for i in range(x.shape[0]):
+        for j in range(x.shape[1]):
+            x[i,j], y[i,j], z[i,j] = np.dot(eigvecs,
+                                            [x[i,j], y[i,j], z[i,j]] * np.sqrt(eigvals)) \
+                                     + r
+
+    # Create a 3D plot
+    #fig = plt.figure()
+    #ax = fig.add_subplot(111, projection='3d')
+    #ax = plt.axes(projection='3d')
+    ax.plot_surface(x, y, z, color='b', alpha=0.2)
+    #plt.show()
 
 if __name__ == '__main__':
 
@@ -302,4 +354,11 @@ if __name__ == '__main__':
         verify_K(p, ct, r_true, ct0)
 
     if 1:
-        SolverStat()
+        ax = SolverStat()
+
+    if 1:
+        err_pos = 0.2e-3
+        sample_rate = 250e3
+        err_ct = 2.0 / sample_rate * 340.0
+        Omega = GetErrorEclipsed(p, ct, r_n, ct0_n, err_pos, err_ct)
+        DrawCovEclipse(ax, r_n, ct0_n, Omega)
