@@ -24,6 +24,9 @@ import numpy as np
 _a = lambda x: np.array(x)
 _ia = lambda x: np.array(x, dtype=int)
 
+import matplotlib.pyplot as plt
+plt.ion()
+
 # parameters (known): m = number of satellites, p = positions, t = time
 # p1, p2, ..., pm, ct1, ct2, ..., ctm
 
@@ -245,6 +248,26 @@ def verify_K(p, ct, r_true, ct0):
     j = 1
     print(-2*(r_true-p[j]), -2*(ct[j]+ct0))
 
+def SolverStat():
+    solver='NewtonConstraint'
+    arr_pos = np.zeros((100,3))
+    for i in range(100):
+        p, ct, r_true, ct0 = gen_sound_data_5p()
+        if solver == 'Newton':
+            r_n, ct0_n = NewtonIterGPS(p, ct, r_true, ct0)
+        elif solver == 'NewtonConstraint':
+            p_c = _a([0, 0, r_true[2]])
+            n_c = _a([0, 0, 1]) * 0.05
+            r_n, ct0_n = NewtonIterGPSConstraint(p, ct, r_true, ct0, p_c, n_c)
+        arr_pos[i] = r_n
+    # plot arr_pos in 3D with matplotlib
+    plt.figure()
+    plt.gca()
+    ax = plt.axes(projection='3d')
+    ax.scatter3D(p[:,0], p[:,1], p[:,2], c='r')
+    ax.scatter3D(arr_pos[:,0], arr_pos[:,1], arr_pos[:,2], c='b')
+
+
 if __name__ == '__main__':
 
     p, ct, r_true, ct0 = gen_sound_data_5p()
@@ -277,3 +300,6 @@ if __name__ == '__main__':
 
     if 0:
         verify_K(p, ct, r_true, ct0)
+
+    if 1:
+        SolverStat()
