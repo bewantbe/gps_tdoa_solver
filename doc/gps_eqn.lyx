@@ -601,6 +601,73 @@ Derivatives
 
 \end_layout
 
+\begin_layout Subsection
+K matrix
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+K=-\left(\frac{\partial F(p,q)}{\partial q}\right)^{\dagger}\frac{\partial F(p,q)}{\partial p}.
+\]
+
+\end_inset
+
+For non degenerated case:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+-K=\left(\left(\frac{\partial F(p,q)}{\partial q}\right)^{T}\left(\frac{\partial F(p,q)}{\partial q}\right)\right)^{-1}\left(\frac{\partial F(p,q)}{\partial q}\right)^{T}\frac{\partial F(p,q)}{\partial p}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+First consider
+\begin_inset Formula 
+\[
+\left(\frac{\partial F(p,q)}{\partial q}\right)^{T}\frac{\partial F(p,q)}{\partial p}
+\]
+
+\end_inset
+
+
+\begin_inset Formula 
+\[
+=-4\begin{bmatrix}(\vec{r}-\vec{p}_{1}) &  & \cdots & (\vec{r}-\vec{p}_{m})\\
+-(t_{1}+T)c &  & \cdots & -(t_{m}+T)c
+\end{bmatrix}\left[\begin{array}{cccc}
+(\vec{r}-\vec{p}_{1})^{T} & (t_{1}+T)c &  & 0\\
+ & \ddots\\
+0 &  & (\vec{r}-\vec{p}_{m})^{T} & -(t_{m}+T)c
+\end{array}\right]
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+=-4\begin{bmatrix}\begin{bmatrix}\vec{r}-\vec{p}_{1}\\
+-(t_{1}+T)c
+\end{bmatrix}\begin{bmatrix}(\vec{r}-\vec{p}_{1})^{T} & (t_{1}+T)c\end{bmatrix} & \cdots & \begin{bmatrix}\vec{r}-\vec{p}_{m}\\
+-(t_{m}+T)c
+\end{bmatrix}\begin{bmatrix}(\vec{r}-\vec{p}_{m})^{T} & (t_{m}+T)c\end{bmatrix}\end{bmatrix}
+\]
+
+\end_inset
+
+
+\end_layout
+
 \begin_layout Standard
 \begin_inset CommandInset bibtex
 LatexCommand bibtex
