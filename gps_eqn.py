@@ -83,34 +83,36 @@ def add_noise_sound_data_5p(p, ct, err_pos, err_ct):
 
 def gen_gps_data_d4():
     # receiver position (unit: m)
-    r_true = np.array([0.1, 0.2, -0.5])
+    r_true = np.array([0.0, 0.0, 6371000])
     c = 299792458.0
 
     p = np.zeros((4, 3))     # satellite positions            (unit: m)
     ct = np.zeros(4)         # relative time delay of arrival (unit: s)
 
-    height = 20180e3 + 6370e3
+    R = 20180e3 + 6370e3
+    randu = lambda : 2 * np.random.rand() - 1
 
     # exact positions and time delays
-    p[0] = _a([0, 0, 0])
+    p[0] = _a([randu() * R, randu() * R, R])
+    p[1] = _a([randu() * R, randu() * R, R])
+    p[2] = _a([randu() * R, randu() * R, R])
+    p[3] = _a([randu() * R, randu() * R, R])
+    p = p / np.linalg.norm(p, axis=1)[:, np.newaxis] * R
+
     ct[0] = np.linalg.norm(r_true - p[0])
-    p[1] = _a([0.1, 0, 0])
     ct[1] = np.linalg.norm(r_true - p[1]) - ct[0]
-    p[2] = _a([0, 0.10001, 0])
     ct[2] = np.linalg.norm(r_true - p[2]) - ct[0]
-    p[3] = _a([-0.1001, 0, 0])
     ct[3] = np.linalg.norm(r_true - p[3]) - ct[0]
 
     ct0 = ct[0]
     ct[0] = ct[0] - ct0
 
     # noise level
-    err_pos = 0.2e-3                 # default 0.2mm
-    sample_rate = 250e3              # default 250kHz
-    err_ct = c * 2.0 / sample_rate   # default 2 samples
+    err_pos = 1.0
+    err_ct = c * 1e-9
 
     # add measurement noise
-    for j in range(m):
+    for j in range(4):
         p[j]  = p[j]  + err_pos * np.random.randn(3)
         ct[j] = ct[j] + err_ct  * np.random.randn()
 
@@ -373,8 +375,28 @@ def DrawCovEclipse2D(ax, r_2d, cov_xy):
 
     plt.plot(x, y)
 
-if __name__ == '__main__':
+def TestGPSlike():
+    np.set_printoptions(formatter={'float': '{: 0.2f}'.format})
+    p, ct, r_true, ct0 = gen_gps_data_d4()
+    print('r_true', r_true)
 
+    # solve
+    r_n, ct0_n = NewtonIterGPS(p, ct, r_true, ct0)
+    print('Newton solver:')
+    print('r_n', r_n, '  diff =', r_n - r_true)
+    print(f'ct0_n {ct0_n:.2f}  diff = {ct0_n - ct0:.2f}')
+
+    r_direct, ct0_direct = DirectGPSSolver(p, ct)
+    print('Direct solver:')
+    print('r_direct', r_direct)
+    print(f'ct0_direct {ct0_direct:0.2f}')
+
+    Omega = GetErrorEclipsed(p, ct, r_true, ct0, 1.0, 1.0e-9 * 3e8)
+    print(f'GDOP = {np.sqrt(np.trace(Omega[:3, :3])):.2f}')
+
+    np.set_printoptions(formatter=None)
+
+def TestSoundSource():
     p_orig, ct_orig, r_true, ct0 = gen_sound_data_5p()
     # noise level
     err_pos = 0.2e-3                 # default 0.2mm
@@ -434,3 +456,7 @@ if __name__ == '__main__':
         plt.plot(r_true[0], r_true[1], 'go')
         DrawCovEclipse2D(None, r_2d, cov_xy)
         plt.show()
+
+if __name__ == '__main__':
+    #TestSoundSource()
+    TestGPSlike()
