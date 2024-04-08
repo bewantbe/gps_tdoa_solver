@@ -39,7 +39,7 @@ plt.ion()
 def gen_sound_data_5p():
     """Generate example microphone configuration with sound source position."""
     # sound source position (unit: m)
-    r_true = np.array([0.1, 0.2, -0.5])
+    r_true = np.array([0.1, 0.06, -0.2])
     # temperature (unit: degree Celsius)
     temp = 20
     # speed of sound (unit: m/s)
@@ -55,15 +55,15 @@ def gen_sound_data_5p():
     ct = np.zeros(m)         # relative time delay of arrival (unit: s)
 
     # exact positions and time delays
-    p[0] = _a([0.0, 0, -0.05])
+    p[0] = _a([0.0, 0.0, -0.05])
     ct[0] = np.linalg.norm(r_true - p[0])
-    p[1] = _a([0.1, 0, 0])
+    p[1] = _a([+0.25/2, +0.18/2, 0])
     ct[1] = np.linalg.norm(r_true - p[1]) - ct[0]
-    p[2] = _a([0, 0.12, 0])
+    p[2] = _a([+0.25/2, -0.18/2, 0])
     ct[2] = np.linalg.norm(r_true - p[2]) - ct[0]
-    p[3] = _a([-0.15, 0, 0])
+    p[3] = _a([-0.25/2, +0.18/2, 0])
     ct[3] = np.linalg.norm(r_true - p[3]) - ct[0]
-    p[4] = _a([0, -0.11, 0])
+    p[4] = _a([-0.25/2, -0.18/2, 0])
     ct[4] = np.linalg.norm(r_true - p[4]) - ct[0]
 
     ct0 = ct[0]
@@ -340,20 +340,20 @@ def DrawCovEclipse(ax, r, ct0, Omega):
                                      + r
 
     # Create a 3D plot
-    #fig = plt.figure()
-    #ax = fig.add_subplot(111, projection='3d')
-    #ax = plt.axes(projection='3d')
+    if ax is None:
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+        ax = plt.axes(projection='3d')
     ax.plot_surface(x, y, z, color='b', alpha=0.2)
     #plt.show()
 
 if __name__ == '__main__':
 
+    p_orig, ct_orig, r_true, ct0 = gen_sound_data_5p()
     # noise level
     err_pos = 0.2e-3                 # default 0.2mm
     sample_rate = 250e3              # default 250kHz
     err_ct = 340 * 2.0e-0 / sample_rate   # default 2 samples
-
-    p_orig, ct_orig, r_true, ct0 = gen_sound_data_5p()
     p, ct = add_noise_sound_data_5p(p_orig, ct_orig, err_pos, err_ct)
     #print(p)
     #print(ct)
@@ -377,7 +377,8 @@ if __name__ == '__main__':
 
     print('Newton solver with constraint:')
     p_c = _a([0, 0, r_true[2]])
-    n_c = _a([0, 0, 1]) * 0.05
+    coef_constraint = 0.2  # 0.05 mild constraint, 0.2 smooth strong constraint
+    n_c = _a([0, 0, 1]) * coef_constraint
     r_nc, ct0_nc = NewtonIterGPSConstraint(p, ct, r_true, ct0, p_c, n_c)
     print('r_nc', r_nc)
     print('ct0_nc', ct0_nc)
