@@ -267,14 +267,14 @@ def GetErrorEclipsed(p, ct, r, ct0, err_pos, err_ct, n_c = None):
 def SolveWithErrorInfo(p, ct, err_pos, err_ct, p_c, n_c):
     r_init, ct0_init = DirectGPSSolver(p, ct)
     r_init = xnp.hstack([r_init[:2], p_c[2]])
-    r_n, ct0_n = NewtonIterGPS(p, ct, r_init, ct0_init)
+    r_n, ct0_n = NewtonIterGPSConstraint(p, ct, r_init, ct0_init, p_c, n_c)
     # Error
     Omega = GetErrorEclipsed(p, ct, r_n, ct0_n, err_pos, err_ct, n_c)
     #gdop = np.sqrt(np.trace(Omega[:3, :3]))
     hdop = np.sqrt(np.trace(Omega[:2, :2]))
     cov_xy = Omega[:2, :2]
-    print('h0 =', r_init[2])
-    print('hn =', r_n[2])
+    #print('h0 =', r_init[2])
+    #print('hn =', r_n[2])
     return r_n[:2], hdop, cov_xy
 
 def verify_dF(p, ct, r_true, ct0):
@@ -315,21 +315,22 @@ def SolverStat(p_orig, ct_orig, r_true, ct0, err_pos, err_ct, p_c, n_c):
         arr_pos[i] = r_n
     
     s_cov = np.cov(arr_pos.T)
-    print('s_cov\n', s_cov)
-    print('GDOP stat:', np.sqrt(np.trace(s_cov)))
+    #print('s_cov\n', s_cov)
+    gdop = np.sqrt(np.trace(s_cov))
+    #print('GDOP stat:', gdop)
     # plot arr_pos in 3D with matplotlib
     plt.figure()
     plt.gca()
     ax = plt.axes(projection='3d')
     ax.scatter3D(p[:,0], p[:,1], p[:,2], c='r')
     ax.scatter3D(arr_pos[:,0], arr_pos[:,1], arr_pos[:,2], c='b')
-    return ax
+    return ax, s_cov, gdop
 
 def DrawCovEclipse(ax, r, ct0, Omega):
     # Covariance matrix
     #cov = np.array([[1, 0, 0], [0, 2, 0], [0, 0, 3]])
     cov = Omega[:3, :3]
-    print('cov\n', cov)
+    #print('cov\n', cov)
 
     # Compute the eigenvalues and eigenvectors
     eigvals, eigvecs = np.linalg.eig(cov)
@@ -377,6 +378,7 @@ def DrawCovEclipse2D(ax, r_2d, cov_xy):
 
 def TestGPSlike():
     np.set_printoptions(formatter={'float': '{: 0.2f}'.format})
+
     p, ct, r_true, ct0 = gen_gps_data_d4()
     print('r_true', r_true)
 
@@ -397,6 +399,8 @@ def TestGPSlike():
     np.set_printoptions(formatter=None)
 
 def TestSoundSource():
+    np.set_printoptions(formatter={'float': '{: 0.4f}'.format})
+
     p_orig, ct_orig, r_true, ct0 = gen_sound_data_5p()
     # noise level
     err_pos = 0.2e-3                 # default 0.2mm
@@ -406,7 +410,7 @@ def TestSoundSource():
     #print(p)
     #print(ct)
     print('r_true', r_true)
-    print('ct0', ct0)
+    print(f'ct0 {ct0:0.4f}')
 
     #print('GPS_F =', GPS_F(p, ct, r_true, ct0))
 
@@ -416,38 +420,39 @@ def TestSoundSource():
     r_n, ct0_n = NewtonIterGPS(p, ct, r_true, ct0)
     print('Newton solver:')
     print('r_n', r_n)
-    print('ct0_n', ct0_n)
+    print(f'ct0_n {ct0_n:0.4f}')
 
     print('Direct solver:')
     r_direct, ct0_direct = DirectGPSSolver(p, ct)
     print('r_direct', r_direct)
-    print('ct0_direct', ct0_direct)
+    print(f'ct0_direct {ct0_direct:0.4f}')
 
     print('Newton solver with constraint:')
     p_c = _a([0, 0, r_true[2]])
     coef_constraint = 0.2  # 0.05 mild constraint, 0.2 smooth strong constraint
     n_c = _a([0, 0, 1]) * coef_constraint
     r_nc, ct0_nc = NewtonIterGPSConstraint(p, ct, r_true, ct0, p_c, n_c)
-    print('r_nc', r_nc)
-    print('ct0_nc', ct0_nc)
+    print('r_nc', r_nc, '  diff =', r_nc - r_true)
+    print(f'ct0_nc {ct0_nc:0.4f}')
 
     if 0:
         verify_K(p, ct, r_true, ct0)
 
     if 1:
-        ax = SolverStat(p_orig, ct_orig, r_true, ct0, err_pos, err_ct, p_c, n_c)
+        ax, s_cov, gdop = SolverStat(p_orig, ct_orig, r_true, ct0, err_pos, err_ct, p_c, n_c)
+        print(f'GDOP stat: {gdop:.4f}')
 
     if 1:
         Omega = GetErrorEclipsed(p_orig, ct_orig, r_true, ct0, err_pos, err_ct, n_c)
-        print('GDOP =', np.sqrt(np.trace(Omega[:3, :3])))
+        print(f'GDOP = {np.sqrt(np.trace(Omega[:3, :3])):.4f}')
         ax.axis('equal')
         DrawCovEclipse(ax, r_true, ct0, Omega)
 
     if 1:
         r_2d, hdop, cov_xy = SolveWithErrorInfo(p, ct, err_pos, err_ct, p_c, n_c)
-        print('r_2d', r_2d)
-        print('hdop', hdop)
-        print('cov_xy\n', cov_xy)
+        print('r_2d', r_2d, '  diff =', r_2d - r_true[:2])
+        print(f'hdop {hdop:.4f}')
+        #print('cov_xy\n', cov_xy)
         
         # Create a 2D plot
         plt.figure(20)
@@ -457,6 +462,10 @@ def TestSoundSource():
         DrawCovEclipse2D(None, r_2d, cov_xy)
         plt.show()
 
+    np.set_printoptions(formatter=None)
+
+    globals().update(locals())
+
 if __name__ == '__main__':
-    #TestSoundSource()
-    TestGPSlike()
+    TestSoundSource()
+    #TestGPSlike()
