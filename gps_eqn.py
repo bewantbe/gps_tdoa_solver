@@ -1,12 +1,19 @@
 # Solve gps equation
 
+import numpy as np
+_a = lambda x: np.array(x)
+_ia = lambda x: np.array(x, dtype=int)
+
 # Use JAX for derivatives
 import jax                # JAX >= 0.4.26
 import jax.numpy as jnp
 from jax import grad
 from jax import jacfwd, jacrev
 
-_ja = lambda x: jnp.array(x)
+# use xnp to control globol numerical lib
+xnp = np
+
+_ja = lambda x: xnp.array(x)
 
 import logging
 logging.getLogger("jax").setLevel(logging.ERROR)
@@ -19,10 +26,6 @@ logging.getLogger("jax").setLevel(logging.ERROR)
 jax.config.update('jax_default_device', jax.devices('cpu')[0])
 
 logging.getLogger("jax").setLevel(logging.WARNING)
-
-import numpy as np
-_a = lambda x: np.array(x)
-_ia = lambda x: np.array(x, dtype=int)
 
 import matplotlib.pyplot as plt
 plt.ion()
@@ -115,15 +118,15 @@ def gen_gps_data_d4():
 
 def GPS_F(p, ct, r, ct0):
     m = len(ct)
-    v = jnp.array([
-        jnp.linalg.norm(r - p[j]) ** 2 - (ct0 + ct[j]) ** 2
+    v = xnp.array([
+        xnp.linalg.norm(r - p[j]) ** 2 - (ct0 + ct[j]) ** 2
         for j in range(m)
     ])
     return v
 
 def GPS_dF_dr(p, ct, r, ct0):
     m = len(ct)
-    dF = jnp.array([
+    dF = xnp.array([
         2 * (r - p[j])
         for j in range(m)
     ])
@@ -131,15 +134,15 @@ def GPS_dF_dr(p, ct, r, ct0):
 
 def GPS_dF_dt(p, ct, r, ct0):
     m = len(ct)
-    dF = jnp.array([
+    dF = xnp.array([
         -2 * (ct0 + ct[j])
         for j in range(m)
     ])
     return dF
 
 def GPS_dF_dq(p, ct, r, ct0):
-    J = jnp.hstack([GPS_dF_dr(p, ct, r, ct0),
-                    GPS_dF_dt(p, ct, r, ct0)[:, jnp.newaxis]])
+    J = xnp.hstack([GPS_dF_dr(p, ct, r, ct0),
+                    GPS_dF_dt(p, ct, r, ct0)[:, xnp.newaxis]])
     return J
 
 def NewtonIter(F, dF_dx, x_init, max_iter=20, tol=1e-7):
@@ -149,17 +152,17 @@ def NewtonIter(F, dF_dx, x_init, max_iter=20, tol=1e-7):
     for i in range(max_iter):
         J = dF_dx(x)
         F_val = F(x)
-        delta = jnp.linalg.lstsq(J, -F_val, rcond=None)[0].flatten()
+        delta = xnp.linalg.lstsq(J, -F_val, rcond=None)[0].flatten()
         x = x + delta
         #print('x', x)
-        if jnp.linalg.norm(delta) < tol:
+        if xnp.linalg.norm(delta) < tol:
             break
     #print('n_iter =', i)
 
     return x
 
 def NewtonIterGPS(p, ct, r_n, ct0_n):
-    #q0 = jnp.hstack([r_n, ct0_n])
+    #q0 = xnp.hstack([r_n, ct0_n])
     q0 = np.hstack([r_n, ct0_n])
     F  = lambda q: GPS_F(p, ct, q[:3], q[3])
     dF = lambda q: GPS_dF_dq(p, ct, q[:3], q[3])
@@ -169,13 +172,13 @@ def NewtonIterGPS(p, ct, r_n, ct0_n):
 def NewtonIterGPSConstraint(p, ct, r_n, ct0_n, p_c, n_c):
     """ add constraint (r - p_c) * n_c = 0 """
     q0 = np.hstack([r_n, ct0_n])
-    F  = lambda q: jnp.hstack([
+    F  = lambda q: xnp.hstack([
             GPS_F(p, ct, q[:3], q[3]),
-            jnp.dot(q[:3] - p_c, n_c)
+            xnp.dot(q[:3] - p_c, n_c)
         ])
-    dF = lambda q: jnp.vstack([
+    dF = lambda q: xnp.vstack([
             GPS_dF_dq(p, ct, q[:3], q[3]),
-            jnp.hstack([n_c, 0])[jnp.newaxis, :]
+            xnp.hstack([n_c, 0])[xnp.newaxis, :]
         ])
     q = NewtonIter(F, dF, q0)
     return q[:3], q[3]
@@ -185,32 +188,33 @@ def DirectGPSSolver(p, ct):
     Ref. An Algebraic Solution of the GPS Equations
     """
     m = len(ct)
-    A = jnp.hstack([p, ct[:, np.newaxis]])
-    i0 = jnp.ones(m)
+    A = xnp.hstack([p, ct[:, np.newaxis]])
+    i0 = xnp.ones(m)
     r_vec = _ja([
-        (jnp.dot(p[j], p[j]) - ct[j]**2) / 2
+        (xnp.dot(p[j], p[j]) - ct[j]**2) / 2
         for j in range(m)
     ])
     if 0:
-        B = jnp.dot(jnp.linalg.inv(jnp.dot(A.T, A)), A.T)
+        B = xnp.dot(xnp.linalg.inv(xnp.dot(A.T, A)), A.T)
         u_vec = B @ i0
         v_vec = B @ r_vec
     else:
         # hope for better numerical stability
         # But still, for rank-deficient A, the solution is usuall incorrect
-        u_vec = jnp.linalg.lstsq(A, i0, rcond=None)[0].flatten()
-        v_vec = jnp.linalg.lstsq(A, r_vec, rcond=None)[0].flatten()
-    E = jnp.dot(u_vec[:3], u_vec[:3]) - u_vec[3] * u_vec[3]
-    F = jnp.dot(u_vec[:3], v_vec[:3]) - u_vec[3] * v_vec[3] - 1
-    G = jnp.dot(v_vec[:3], v_vec[:3]) - v_vec[3] * v_vec[3]
-    lambdas = jnp.roots(_ja([E, 2*F, G]), strip_zeros = False)
-    y_all = u_vec[:, jnp.newaxis] * lambdas[jnp.newaxis, :] + v_vec[:, jnp.newaxis]
+        u_vec = xnp.linalg.lstsq(A, i0, rcond=None)[0].flatten()
+        v_vec = xnp.linalg.lstsq(A, r_vec, rcond=None)[0].flatten()
+    E = xnp.dot(u_vec[:3], u_vec[:3]) - u_vec[3] * u_vec[3]
+    F = xnp.dot(u_vec[:3], v_vec[:3]) - u_vec[3] * v_vec[3] - 1
+    G = xnp.dot(v_vec[:3], v_vec[:3]) - v_vec[3] * v_vec[3]
+    #lambdas = xnp.roots(_ja([E, 2*F, G]), strip_zeros = False)
+    lambdas = xnp.roots(_ja([E, 2*F, G]))
+    y_all = u_vec[:, xnp.newaxis] * lambdas[xnp.newaxis, :] + v_vec[:, xnp.newaxis]
 
     # pick the real solution
-    y1 = jnp.real(y_all[:, 0])
-    y2 = jnp.real(y_all[:, 1])
-    l1 = jnp.linalg.norm(GPS_F(p, ct, y1[:3], y1[3]))
-    l2 = jnp.linalg.norm(GPS_F(p, ct, y2[:3], y2[3]))
+    y1 = xnp.real(y_all[:, 0])
+    y2 = xnp.real(y_all[:, 1])
+    l1 = xnp.linalg.norm(GPS_F(p, ct, y1[:3], y1[3]))
+    l2 = xnp.linalg.norm(GPS_F(p, ct, y2[:3], y2[3]))
     if l1 < l2:
         y = y1
     else:
@@ -220,26 +224,26 @@ def DirectGPSSolver(p, ct):
 
 def GetK(p, ct, r, ct0):
     m = len(ct)
-    A = -2 * jnp.hstack([r[np.newaxis, :] - p, ct0 + ct[:, jnp.newaxis]])
-    dF_dp = jnp.vstack([
-        jnp.hstack([jnp.zeros((1, 4*j)), A[j:j+1, :], jnp.zeros((1, 4*(m-j-1)))])
+    A = -2 * xnp.hstack([r[np.newaxis, :] - p, ct0 + ct[:, xnp.newaxis]])
+    dF_dp = xnp.vstack([
+        xnp.hstack([xnp.zeros((1, 4*j)), A[j:j+1, :], xnp.zeros((1, 4*(m-j-1)))])
         for j in range(m)
     ])
     dF_dq = GPS_dF_dq(p, ct, r, ct0)
-    K = - jnp.linalg.lstsq(dF_dq, dF_dp, rcond=None)[0]
+    K = - xnp.linalg.lstsq(dF_dq, dF_dp, rcond=None)[0]
     return K
 
 def GetK_Constraint(p, ct, r, ct0, n_c):
     m = len(ct)
-    A = -2 * jnp.hstack([r[np.newaxis, :] - p, ct0 + ct[:, jnp.newaxis]])
-    dF_dp = jnp.vstack([
-        jnp.hstack([jnp.zeros((1, 4*j)), A[j:j+1, :], jnp.zeros((1, 4*(m-j-1)))])
+    A = -2 * xnp.hstack([r[np.newaxis, :] - p, ct0 + ct[:, xnp.newaxis]])
+    dF_dp = xnp.vstack([
+        xnp.hstack([xnp.zeros((1, 4*j)), A[j:j+1, :], xnp.zeros((1, 4*(m-j-1)))])
         for j in range(m)
     ])
-    dF_dp = jnp.vstack([dF_dp, jnp.zeros((1, 4*m))])
+    dF_dp = xnp.vstack([dF_dp, xnp.zeros((1, 4*m))])
     dF_dq = GPS_dF_dq(p, ct, r, ct0)
-    dF_dq = jnp.vstack([dF_dq, jnp.hstack([n_c, 0])])
-    K = - jnp.linalg.lstsq(dF_dq, dF_dp, rcond=None)[0]
+    dF_dq = xnp.vstack([dF_dq, xnp.hstack([n_c, 0])])
+    K = - xnp.linalg.lstsq(dF_dq, dF_dp, rcond=None)[0]
     return K
 
 def GetErrorEclipsed(p, ct, r, ct0, err_pos, err_ct, n_c = None):
@@ -249,13 +253,13 @@ def GetErrorEclipsed(p, ct, r, ct0, err_pos, err_ct, n_c = None):
     else:
         K = GetK_Constraint(p, ct, r, ct0, n_c)
     # error matrix of p and ct
-    Lambda = jnp.diag(
-        jnp.tile(
-            jnp.hstack([err_pos**2 * jnp.ones(3),
-                        err_ct**2 * jnp.ones(1)]),
+    Lambda = xnp.diag(
+        xnp.tile(
+            xnp.hstack([err_pos**2 * xnp.ones(3),
+                        err_ct**2 * xnp.ones(1)]),
         m)
     )
-    Omega = jnp.dot(K, jnp.dot(Lambda, K.T))
+    Omega = xnp.dot(K, xnp.dot(Lambda, K.T))
     return Omega
 
 def verify_dF(p, ct, r_true, ct0):
@@ -285,8 +289,9 @@ def SolverStat(p_orig, ct_orig, r_true, ct0, err_pos, err_ct, p_c, n_c):
         solver='Newton'
     else:
         solver='NewtonConstraint'
-    arr_pos = np.zeros((100,3))
-    for i in range(100):
+    n_trial = 100
+    arr_pos = np.zeros((n_trial,3))
+    for i in range(n_trial):
         p, ct = add_noise_sound_data_5p(p_orig, ct_orig, err_pos, err_ct)
         if solver == 'Newton':
             r_n, ct0_n = NewtonIterGPS(p, ct, r_true, ct0)
