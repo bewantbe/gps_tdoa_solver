@@ -319,10 +319,10 @@ def SolverStat(p_orig, ct_orig, r_true, ct0, err_pos, err_ct, p_c, n_c):
     gdop = np.sqrt(np.trace(s_cov))
     #print('GDOP stat:', gdop)
     # plot arr_pos in 3D with matplotlib
-    plt.figure()
-    plt.gca()
+    plt.figure(10)
+    plt.cla()
     ax = plt.axes(projection='3d')
-    ax.scatter3D(p[:,0], p[:,1], p[:,2], c='r')
+    ax.scatter3D(p_orig[:,0], p_orig[:,1], p_orig[:,2], c='r')
     ax.scatter3D(arr_pos[:,0], arr_pos[:,1], arr_pos[:,2], c='b')
     return ax, s_cov, gdop
 
@@ -456,15 +456,16 @@ def TestSoundSource():
         
         # Create a 2D plot
         plt.figure(20)
+        plt.cla()
         plt.axis('equal')
         plt.plot(p[:,0], p[:,1], 'ro')
         plt.plot(r_true[0], r_true[1], 'go')
         DrawCovEclipse2D(None, r_2d, cov_xy)
-        plt.show()
+        #plt.show()
 
     np.set_printoptions(formatter=None)
 
-    globals().update(locals())
+    globals().update(locals())  # easier for debug
 
 if __name__ == '__main__':
     TestSoundSource()
