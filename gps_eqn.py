@@ -262,6 +262,19 @@ def GetErrorEclipsed(p, ct, r, ct0, err_pos, err_ct, n_c = None):
     Omega = xnp.dot(K, xnp.dot(Lambda, K.T))
     return Omega
 
+def SolveWithErrorInfo(p, ct, err_pos, err_ct, p_c, n_c):
+    r_init, ct0_init = DirectGPSSolver(p, ct)
+    r_init = xnp.hstack([r_init[:2], p_c[2]])
+    r_n, ct0_n = NewtonIterGPS(p, ct, r_init, ct0_init)
+    # Error
+    Omega = GetErrorEclipsed(p, ct, r_n, ct0_n, err_pos, err_ct, n_c)
+    #gdop = np.sqrt(np.trace(Omega[:3, :3]))
+    hdop = np.sqrt(np.trace(Omega[:2, :2]))
+    cov_xy = Omega[:2, :2]
+    print('h0 =', r_init[2])
+    print('hn =', r_n[2])
+    return r_n[:2], hdop, cov_xy
+
 def verify_dF(p, ct, r_true, ct0):
     # For verification of derivatives
 
@@ -347,6 +360,19 @@ def DrawCovEclipse(ax, r, ct0, Omega):
     ax.plot_surface(x, y, z, color='b', alpha=0.2)
     #plt.show()
 
+def DrawCovEclipse2D(ax, r_2d, cov_xy):
+    eigvals, eigvecs = np.linalg.eig(cov_xy)
+
+    theta = np.linspace(0, 2*np.pi, 100)
+    x, y = np.cos(theta), np.sin(theta)
+
+    # Transform the points to the ellipse
+    for i in range(len(x)):
+        x[i], y[i] = np.dot(eigvecs, [x[i], y[i]] * np.sqrt(eigvals)) \
+                    + r_2d
+
+    plt.plot(x, y)
+
 if __name__ == '__main__':
 
     p_orig, ct_orig, r_true, ct0 = gen_sound_data_5p()
@@ -392,4 +418,19 @@ if __name__ == '__main__':
     if 1:
         Omega = GetErrorEclipsed(p_orig, ct_orig, r_true, ct0, err_pos, err_ct, n_c)
         print('GDOP =', np.sqrt(np.trace(Omega[:3, :3])))
+        ax.axis('equal')
         DrawCovEclipse(ax, r_true, ct0, Omega)
+
+    if 1:
+        r_2d, hdop, cov_xy = SolveWithErrorInfo(p, ct, err_pos, err_ct, p_c, n_c)
+        print('r_2d', r_2d)
+        print('hdop', hdop)
+        print('cov_xy\n', cov_xy)
+        
+        # Create a 2D plot
+        plt.figure(20)
+        plt.axis('equal')
+        plt.plot(p[:,0], p[:,1], 'ro')
+        plt.plot(r_true[0], r_true[1], 'go')
+        DrawCovEclipse2D(None, r_2d, cov_xy)
+        plt.show()
