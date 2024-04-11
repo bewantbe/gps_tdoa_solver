@@ -506,8 +506,8 @@ def gcc_phat(x1, x2, window = None):
     cross_spectrum = cxf1 * xf2 * weight
     #crosscorrelation = np.fft.ifft(crossspectrum / np.abs(crossspectrum))
     cross_correlation = np.real(np.fft.ifft(cross_spectrum))
-    i_max, _ = find_peak_interp2(cross_correlation)
-    return cross_correlation, i_max
+    i_max, val_max = find_peak_interp2(cross_correlation)
+    return cross_correlation, i_max, val_max
 
 def find_peak_interp2(x):
     # Find the peak in data points in x, interpolate it with quadratic function
@@ -568,36 +568,42 @@ def test_find_peak_interp2():
     assert np.abs(imax - x_peak) < 1e-14
     assert np.abs(val - v_peak) < 1e-14
 
-def test_GCC_PHAT_one(d_shift = 10, b_show = True):
-    # generate narrow-band signal
-    fs = 48000            # sampling frequency
-    f0 = 0.1*fs           # signal central frequency
-    n = int(0.05*fs)      # signal length
+def generate_delayed_signal(n_measure, f0, d_shift):
+    # generate signal
+    n = int(n_measure / 2)
     amp_noise = 1.0       # phase jitter (simulated narrow-band)
-    phase_inc = (np.ones(n) + amp_noise * np.random.randn(n)) * f0 / fs
+    phase_inc = (np.ones(n) + amp_noise * np.random.randn(n)) * f0
     s1 = np.sin(2 * np.pi * np.cumsum(phase_inc))
-
-    n_measure = 2*n
-
-    tt = np.arange(n_measure) / fs
 
     # generate noise
     n1 = 1.5 * np.random.randn(n_measure)
     n2 = 1.5 * np.random.randn(n_measure)
 
+    # shift
     x1 = np.hstack([s1, np.zeros(len(n1) - len(s1))]) + n1
-    d_ans = d_shift
-    x2 = np.hstack([np.zeros(d_ans),
+    x2 = np.hstack([np.zeros(d_shift),
                     s1,
-                    np.zeros(len(n1) - len(s1) - d_ans)]) \
+                    np.zeros(len(n1) - len(s1) - d_shift)]) \
          + n2
 
-    gcov, i_max = gcc_phat(x1, x2)
+    return x1, x2
+
+def generate_delayed_signal_phy(d_shift):
+    fs = 48000            # sampling frequency
+    f0 = 0.1*fs           # signal central frequency
+    n = int(0.10*fs)      # signal length
+    tt = np.arange(n) / fs
+    x1, x2 = generate_delayed_signal(n, f0/fs, d_shift)
+    return tt, x1, x2
+
+def test_GCC_PHAT_one(d_shift = 10, b_show = True):
+    tt, x1, x2 = generate_delayed_signal_phy(d_shift)
+    gcov, i_max, _ = gcc_phat(x1, x2)
 
     if not b_show:
         return i_max
 
-    print(f'delay estimation (unit: sample): {i_max:.2f},   diff = {i_max - d_ans:.2f}')
+    print(f'delay estimation (unit: sample): {i_max:.2f},   diff = {i_max - d_shift:.2f}')
 
     plt.figure(50)
     plt.cla()
@@ -635,6 +641,29 @@ def test_GCC_PHAT_batch():
     plt.figure(30)
     plt.cla()
     plt.hist(i_max_s, bins=20)
+
+def DOA_2MIC(path_wav):
+    # read wav file
+    from scipy.io import wavfile
+
+    sr, x_au = wavfile.read(path_wav)
+
+    n_len  = x_au.shape[0]
+    n_ch   = x_au.shape[1]
+    sz_wnd = 1024
+    sz_hop = 512   # 50% overlap
+    # loop over each window
+    for j in range(int((n_len - sz_wnd) / sz_hop) + 1):
+        x = x_au[j*sz_hop: j*sz_hop + sz_wnd, :]
+        x1 = x[:, 0]
+        x2 = x[:, 1]
+        gcov, i_peak, val_peak = gcc_phat(x1, x2)
+        t = j*sz_hop/sr
+        print(f'segmentation:{j:4} = {t:.3f}s, peak at {i_peak:.2f}, val = {val_peak:.2f}')
+
+def test_doa():
+    path_wav = 'data/2mic_1kHz_0dB.wav'
+    DOA_2MIC(path_wav)
 
 if __name__ == '__main__':
     #TestSoundSource()
