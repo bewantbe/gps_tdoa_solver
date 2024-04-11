@@ -260,15 +260,15 @@ def GetK(p, ct, r, ct0):
 
 def GetK_Constraint(p, ct, r, ct0, n_c):
     m = len(ct)
+    n_c_2d = xnp.atleast_2d(n_c)
+    n_c_2d_e = xnp.hstack([n_c_2d, xnp.zeros((n_c_2d.shape[0], 1))])
     A = -2 * xnp.hstack([r[np.newaxis, :] - p, ct0 + ct[:, xnp.newaxis]])
     dF_dp = xnp.vstack([
         xnp.hstack([xnp.zeros((1, 4*j)), A[j:j+1, :], xnp.zeros((1, 4*(m-j-1)))])
         for j in range(m)
     ])
-    dF_dp = xnp.vstack([dF_dp, xnp.zeros((1, 4*m))])
+    dF_dp = xnp.vstack([dF_dp, xnp.zeros((len(n_c_2d), 4*m))])
     dF_dq = GPS_dF_dq(p, ct, r, ct0)
-    n_c_2d = xnp.atleast_2d(n_c)
-    n_c_2d_e = xnp.hstack([n_c_2d, xnp.zeros((n_c_2d.shape[0], 1))])
     dF_dq = xnp.vstack([dF_dq, n_c_2d_e])
     K = - xnp.linalg.lstsq(dF_dq, dF_dp, rcond=None)[0]
     return K
@@ -498,16 +498,25 @@ def TestSoundSource2D():
     # gen_sound_data_2p
     p_orig, ct_orig, r_true, ct0 = gen_sound_data_2p()
     print('r_true', r_true)
+    err_pos = 1e-3
+    err_ct = 340 * 1.0 / 48e3
     #p, ct = add_noise_sound_data(p_orig, ct_orig, 0.2e-3, 340 * 2.0e-0 / 48e3)
-    p, ct = add_noise_sound_data(p_orig, ct_orig, 1e-3, 340 * 1.0 / 48e3)
+    p, ct = add_noise_sound_data(p_orig, ct_orig, err_pos, err_ct)
     # constraint on line passing (-1,1,0) to (1,1,0)
     p_c = _a([[0, 1, 0], [0, 1, 0]])
-    n_c = _a([[0, 1, 0], [0, 0, 1]]) * 1e-6
+    n_c = _a([[0, 1, 0], [0, 0, 1]]) * 1e-3
     # solve position
     r_n, ct0_n = NewtonIterGPSConstraint(p, ct, r_true, ct0, p_c, n_c)
     print('r_n', r_n)
 
     # plot
+    ax, s_cov, gdop = SolverStat(p_orig, ct_orig, r_true, ct0, err_pos, err_ct, p_c, n_c)
+    ax.axis('equal')
+    print(f'GDOP stat: {gdop:.4f}')
+
+    Omega = GetErrorEclipsed(p_orig, ct_orig, r_true, ct0, err_pos, err_ct, n_c)
+    print(f'GDOP = {np.sqrt(np.trace(Omega[:3, :3])):.4f}')
+    DrawCovEclipse(ax, r_true, ct0, Omega)
 
     np.set_printoptions(formatter=None)
 
