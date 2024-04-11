@@ -467,6 +467,172 @@ def TestSoundSource():
 
     globals().update(locals())  # easier for debug
 
+# for time delay estimation
+def gcc_hatt(x1, x2, window = None):
+    # the PHAT-weighted generalized cross-correlation algorithm
+    # for signals x1 and x2
+    # x1(t) = s(t) + n1(t)          # as reference
+    # x2(t) = s(t - d) + n2(t)
+    # return the time delay estimation `d` in unit of sample
+    # Ref. https://github.com/xiongyihui/tdoa/blob/master/gcc_phat.py
+    # Ref. https://ieeexplore.ieee.org/document/5670137
+    #      Analysis of the GCC-PHAT technique for multiple sources
+    # Ref. https://www.rd.ntt/cs/team_project/icl/signal/iwaenc03/cdrom/data/0013.pdf
+    #      CONSIDERING THE SECOND PEAK IN THE GCC FUNCTION FOR MULTI-SOURCE
+    #        TDOA ESTIMATION WITH A MICROPHONE ARRAY
+    # Ref. https://speechprocessingbook.aalto.fi/Enhancement/tdoa.html
+    # 11.8.3. Time-Delay of Arrival (TDoA) and Direction of Arrival (DoA) Estimation
+    # Ref. https://www.mathworks.com/help/phased/ref/gccdoaandtoa.html
+    #      Matlab - GCC DOA and TOA
+    
+    if len(x1.shape) >= 2:
+        x1 = x1.flatten()
+    if len(x2.shape) >= 2:
+        x2 = x2.flatten()
+    n = len(x1)
+    if window is None:
+        window = np.ones(n)
+    xf1 = np.fft.fft(x1 * window)
+    xf2 = np.fft.fft(x2 * window)
+    cxf1 = np.conj(xf1)
+
+    #weight = 1 / np.abs(cxf1 * xf2)   # phase correlation weighting
+    weight = 1                         # correlation
+    #ff = np.arange(n) / n * 48000
+    #weight = ((np.abs(ff - 4800) < 50) | (np.abs(ff - (48000-4800)) < 50)) + 0.1
+
+    # Ref. Time delay estimation by generalized cross correlation methods
+    #      https://ieeexplore.ieee.org/document/1164314
+    cross_spectrum = cxf1 * xf2 * weight
+    #crosscorrelation = np.fft.ifft(crossspectrum / np.abs(crossspectrum))
+    cross_correlation = np.real(np.fft.ifft(cross_spectrum))
+    i_max, _ = find_peak_interp2(cross_correlation)
+    return cross_correlation, i_max
+
+def find_peak_interp2(x):
+    # Find the peak in data points in x, interpolate it with quadratic function
+    # and return the interpolated peak position.
+    # Will auto wrap around the boundary.
+    n = len(x)
+    i_max = np.argmax(x)
+    # The peak around peak should look like quadratic curve
+    # a*x^2 + b*x + c = y
+    # a - b + c = x1
+    #         c = x2
+    # a + b + c = x3
+    x1 = x[(i_max - 1) % n]
+    x2 = x[i_max]
+    x3 = x[(i_max + 1) % n]
+    c = x2
+    a = (x3+x1)/2 - x2
+    b = (x3-x1)/2
+    if a > 0:
+        return None, None
+    if a == 0:
+        return i_max, x2
+    pos = - b / (2 * a)
+    val = (a * pos + b) * pos + c
+    i_interp = i_max + pos
+    if i_interp > n // 2:
+        i_interp = i_interp - n
+    return i_interp, val
+
+def test_find_peak_interp2():
+    a = -0.12
+    b = 0.5
+    c = 0.3
+    fn = lambda x: a * x ** 2 + b * x + c
+    xx = np.arange(10)
+    x_peak = - b / (2*a)
+    v_peak = fn(x_peak)
+    #print(x_peak)
+    imax, val = find_peak_interp2(fn(xx))
+    assert np.abs(imax - x_peak) < 1e-14
+    assert np.abs(val - v_peak) < 1e-14
+
+    a = -0.12
+    b = 1.5
+    c = 0.3
+    fn = lambda x: a * x ** 2 + b * x + c
+    xx = np.arange(10)
+    x_peak = - b / (2*a)
+    v_peak = fn(x_peak)
+    x_peak = x_peak - 10
+    #print('ans')
+    #print(x_peak)
+    #print(v_peak)
+    imax, val = find_peak_interp2(fn(xx))
+    #print('interp')
+    #print(imax)
+    #print(val)
+    assert np.abs(imax - x_peak) < 1e-14
+    assert np.abs(val - v_peak) < 1e-14
+
+def test_GCC_HATT_one(d_shift = 10, b_show = True):
+    # generate narrow-band signal
+    fs = 48000            # sampling frequency
+    f0 = 0.1*fs           # signal central frequency
+    n = int(0.05*fs)      # signal length
+    amp_noise = 1.0       # phase jitter (simulated narrow-band)
+    phase_inc = (np.ones(n) + amp_noise * np.random.randn(n)) * f0 / fs
+    s1 = np.sin(2 * np.pi * np.cumsum(phase_inc))
+
+    n_measure = 2*n
+
+    tt = np.arange(n_measure) / fs
+
+    # generate noise
+    n1 = 1.5 * np.random.randn(n_measure)
+    n2 = 1.5 * np.random.randn(n_measure)
+
+    x1 = np.hstack([s1, np.zeros(len(n1) - len(s1))]) + n1
+    d_ans = d_shift
+    x2 = np.hstack([np.zeros(d_ans),
+                    s1,
+                    np.zeros(len(n1) - len(s1) - d_ans)]) \
+         + n2
+
+    gcov, i_max = gcc_hatt(x1, x2)
+
+    if not b_show:
+        return i_max
+
+    print(f'delay estimation (unit: sample): {i_max:.2f},   diff = {i_max - d_ans:.2f}')
+
+    plt.figure(50)
+    plt.cla()
+    plt.plot(tt, x1, tt, x2)
+
+    plt.figure(52)
+    plt.cla()
+    plt.plot(gcov)
+
+    plt.figure(53)
+    plt.cla()
+    rg = np.arange(-20, 20)
+    plt.plot(rg, np.hstack([gcov[rg[0]:], gcov[0:rg[-1]+1]]))
+
+    plt.show()
+
+def test_GCC_HATT_batch():
+    n_trial = 100
+    i_max_s = np.zeros(n_trial)
+    d_shift = 10
+    for i in range(n_trial):
+        i_max_s[i] = test_GCC_HATT_one(d_shift, False) - d_shift
+    print(f'mean = {np.mean(i_max_s):.2f}, std = {np.std(i_max_s):.2f}')
+
+    # perf of weightings
+    # weight   std
+    # const. : 0.21
+    # 
+    plt.figure(30)
+    plt.cla()
+    plt.hist(i_max_s, bins=20)
+
 if __name__ == '__main__':
-    TestSoundSource()
+    #TestSoundSource()
     #TestGPSlike()
+    #test_find_peak_interp2()
+    #test_GCC_HATT_one()
+    test_GCC_HATT_batch()

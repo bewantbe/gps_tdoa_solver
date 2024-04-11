@@ -81,6 +81,85 @@
 
 \begin_body
 
+\begin_layout Standard
+\begin_inset FormulaMacro
+\newcommand{\var}{\,\textrm{var}\,}
+{\,\textrm{var}}
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset FormulaMacro
+\newcommand{\cov}{\,\textrm{cov}\,}
+{\,\textrm{cov}}
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset FormulaMacro
+\newcommand{\corr}{\,\textrm{corr}\,}
+{\,\textrm{corr}}
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset FormulaMacro
+\newcommand{\ra}{\rightarrow}
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset FormulaMacro
+\newcommand{\inf}{\infty}
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset FormulaMacro
+\newcommand{\MI}[2]{\,\mathrm{I}\left(#1\,;#2\right)}
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset FormulaMacro
+\newcommand{\KL}[2]{\,D_{\mathrm{KL}}\left(#1\parallel#2\right)}
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset FormulaMacro
+\newcommand{\d}{\,\mathrm{d}}
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset FormulaMacro
+\newcommand{\E}{\,\mathrm{E}}
+\end_inset
+
+
+\end_layout
+
+\begin_layout Title
+Sound source localization
+\end_layout
+
 \begin_layout Section
 GPS equation
 \end_layout
@@ -524,6 +603,404 @@ The usual Newton's method is then proceed.
 \end_inset
 
  for adjusting the weight for constraint in LSM.
+\end_layout
+
+\begin_layout Section
+GCC-PHAT
+\end_layout
+
+\begin_layout Standard
+Classical paper 
+\begin_inset Quotes eld
+\end_inset
+
+Time delay estimation by generalized cross correlation methods
+\begin_inset Quotes erd
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Subsection
+Cross correlation method
+\end_layout
+
+\begin_layout Standard
+For 
+\begin_inset Formula $-T/2\leq t\leq T/2$
+\end_inset
+
+
+\begin_inset Formula 
+\begin{align*}
+x(t) & =s(t)+n_{1}(t)\\
+y(t) & =s(t-D)+n_{2}(t)
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Assumptions:
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $s(t)$
+\end_inset
+
+, 
+\begin_inset Formula $n_{1}(t)$
+\end_inset
+
+, 
+\begin_inset Formula $n_{2}(t)$
+\end_inset
+
+ are stationary, band limited, zero mean.
+ Uncorrelated with each other.
+\end_layout
+
+\begin_layout Itemize
+Correlation durations of 
+\begin_inset Formula $s(t)$
+\end_inset
+
+, 
+\begin_inset Formula $n_{1}(t)$
+\end_inset
+
+, 
+\begin_inset Formula $n_{2}(t)$
+\end_inset
+
+, 
+\begin_inset Formula $|D|+\tau_{s}$
+\end_inset
+
+, 
+\begin_inset Formula $\tau_{n_{1}}$
+\end_inset
+
+, 
+\begin_inset Formula $\tau_{n_{2}}\ll T$
+\end_inset
+
+.
+ 
+\begin_inset Formula $s(t)$
+\end_inset
+
+ is also ergodicity.
+\end_layout
+
+\begin_layout Standard
+Define
+\begin_inset Formula 
+\begin{align*}
+\phi(\tau) & =\int_{-T/2}^{T/2}x(t)y(t+\tau)\d t\\
+ & =\phi_{ss}(\tau)+\phi_{N}(\tau)
+\end{align*}
+
+\end_inset
+
+
+\begin_inset Formula 
+\[
+\phi_{ss}(\tau)\triangleq\int_{-T/2}^{T/2}s(t)s(t+\tau-D)\d t
+\]
+
+\end_inset
+
+
+\begin_inset Formula 
+\begin{align*}
+\phi_{N}(\tau) & \triangleq\int_{-T/2}^{T/2}s(t)n_{2}(t+\tau)\d t\\
+ & +\int_{-T/2}^{T/2}n_{1}(t)s(t+\tau-D)\d t\\
+ & +\int_{-T/2}^{T/2}n_{1}(t)n_{2}(t+\tau)\d t
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\phi(\hat{D})=\max_{\tau}\phi(\tau)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Define autocorrelation function
+\begin_inset Formula 
+\[
+R_{ss}(\tau)=\frac{1}{T}\int_{-T/2}^{T/2}s(t)s(t+\tau)\d t
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Assume
+\begin_inset Formula 
+\[
+\left|\hat{D}-D\right|\ll\tau_{s}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Variance estimation
+\begin_inset Formula 
+\begin{align*}
+\E(\hat{D}-D)^{2} & =\frac{1}{T}\frac{1}{\left(\int_{-\inf}^{\inf}\left(2\pi f\right)^{2}G_{ss}(f)\d f\right)^{2}}\\
+ & \cdot\Bigl(\int_{-\inf}^{\inf}\left(2\pi f\right)^{2}G_{n_{1}n_{1}}(f)G_{ss}(f)\d f\\
+ & \int_{-\inf}^{\inf}\left(2\pi f\right)^{2}G_{n_{2}n_{2}}(f)G_{ss}(f)\d f\\
+ & \int_{-\inf}^{\inf}\left(2\pi f\right)^{2}G_{n_{1}n_{1}}(f)G_{n_{2}n_{2}}(f)\d f\Bigr)
+\end{align*}
+
+\end_inset
+
+where 
+\begin_inset Formula $G_{uu}$
+\end_inset
+
+ is Fourier transform of 
+\begin_inset Formula $R_{uu}$
+\end_inset
+
+
+\begin_inset Formula 
+\[
+R_{uu}(\tau)=\int_{-\inf}^{\inf}G_{uu}(f)e^{j2\pi f\tau}\d f.
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Assumeption c: 
+\begin_inset Formula $n_{1}(t)$
+\end_inset
+
+, 
+\begin_inset Formula $n_{2}(t)$
+\end_inset
+
+, 
+\begin_inset Formula $s(t)$
+\end_inset
+
+ have bandwidths 
+\begin_inset Formula $2B_{n_{1}}$
+\end_inset
+
+, 
+\begin_inset Formula $2B_{n_{2}}$
+\end_inset
+
+, 
+\begin_inset Formula $2B_{s}$
+\end_inset
+
+.
+ 
+\begin_inset Formula $B_{n1}=B_{n_{2}}=B_{n}>B_{s}$
+\end_inset
+
+.
+ Let 
+\begin_inset Formula $\bar{G}_{n_{1}n_{1}}$
+\end_inset
+
+ be the power spectrum density of 
+\begin_inset Formula $n_{1}(t)$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+Define signal to noise ratios by
+\begin_inset Formula 
+\[
+\gamma_{1}=\frac{R_{ss}(0)}{2B_{n_{1}}\bar{G}_{n_{1}n_{1}}}
+\]
+
+\end_inset
+
+
+\begin_inset Formula 
+\[
+\gamma_{2}=\frac{R_{ss}(0)}{2B_{n_{2}}\bar{G}_{n_{2}n_{2}}}
+\]
+
+\end_inset
+
+and effective bandwidth (
+\begin_inset Formula $u\in\{s,n_{1},n_{2}\}$
+\end_inset
+
+)
+\begin_inset Formula 
+\[
+\beta_{u}^{2}=\frac{\int_{-\inf}^{\inf}\left(2\pi f\right)^{2}G_{uu}(f)\d f}{\int_{-\inf}^{\inf}G_{uu}(f)\d f}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Then
+\begin_inset Formula 
+\[
+\E(\hat{D}-D)^{2}=\frac{1}{T}\frac{1}{\beta_{s}^{2}}\frac{1}{B_{n}}\frac{1}{2}\left(\frac{1}{\gamma_{1}}+\frac{1}{\gamma_{2}}+\frac{\beta_{n}^{2}}{\beta_{s}^{2}}\frac{1}{\gamma_{1}}\frac{1}{\gamma_{2}}\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+Generalized cross correlation
+\end_layout
+
+\begin_layout Standard
+add prefiltering
+\begin_inset Formula 
+\[
+\tilde{x}(t)=h_{1}(t)\star x(t)=\tilde{s}_{1}(t)+\tilde{n}_{1}(t)
+\]
+
+\end_inset
+
+
+\begin_inset Formula 
+\[
+\tilde{y}(t)=h_{2}(t)\star y(t)=\tilde{s}_{2}(t-D)+\tilde{n}_{2}(t)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Then
+\begin_inset Formula 
+\[
+\phi^{g}(\tau)=\int_{-T/2}^{T/2}\tilde{x}(t)\tilde{y}(t+\tau)\d t
+\]
+
+\end_inset
+
+
+\begin_inset Formula 
+\[
+\mathcal{F}[\phi^{g}(\tau)]=X(f)H_{1}(f)Y^{*}(f)H_{2}^{*}(f)
+\]
+
+\end_inset
+
+
+\begin_inset Formula 
+\[
+w(f)=H_{1}(f)H_{2}^{*}(f)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Said best weighting
+\begin_inset Formula 
+\[
+w(f)=k\cdot\frac{G_{ss}(f)}{G_{ss}(f)G_{n_{1}n_{1}}(f)+G_{ss}(f)G_{n_{2}n_{2}}(f)+G_{n_{1}n_{1}}(f)G_{n_{2}n_{2}}(f)}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+i.e.
+ weight at the signal.
+\end_layout
+
+\begin_layout Standard
+if 
+\begin_inset Formula $G_{ss}\ll G_{n_{1}n_{1}}$
+\end_inset
+
+
+\begin_inset Formula 
+\[
+w(f)\approx\frac{G_{ss}(f)}{G_{n_{1}n_{1}}(f)G_{n_{2}n_{2}}(f)}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+if 
+\begin_inset Formula $G_{ss}\gg G_{n_{1}n_{1}}$
+\end_inset
+
+
+\begin_inset Formula 
+\[
+w(f)\approx\frac{1}{G_{n_{1}n_{1}}(f)+G_{n_{2}n_{2}}(f)}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Assume 
+\begin_inset Formula $G_{n_{1}n_{2}}=1$
+\end_inset
+
+,
+\begin_inset Formula 
+\[
+w(f)=\frac{G_{ss}(f)}{2G_{ss}(f)+1}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+Phase correlation
+\end_layout
+
+\begin_layout Standard
+..
 \end_layout
 
 \begin_layout Section
