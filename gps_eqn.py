@@ -496,8 +496,8 @@ def gcc_hatt(x1, x2, window = None):
     xf2 = np.fft.fft(x2 * window)
     cxf1 = np.conj(xf1)
 
+    weight = 1                         # correlation, most stable
     #weight = 1 / np.abs(cxf1 * xf2)   # phase correlation weighting
-    weight = 1                         # correlation
     #ff = np.arange(n) / n * 48000
     #weight = ((np.abs(ff - 4800) < 50) | (np.abs(ff - (48000-4800)) < 50)) + 0.1
 
@@ -615,17 +615,23 @@ def test_GCC_HATT_one(d_shift = 10, b_show = True):
     plt.show()
 
 def test_GCC_HATT_batch():
-    n_trial = 100
+    n_trial = 1000
     i_max_s = np.zeros(n_trial)
     d_shift = 10
     for i in range(n_trial):
         i_max_s[i] = test_GCC_HATT_one(d_shift, False) - d_shift
-    print(f'mean = {np.mean(i_max_s):.2f}, std = {np.std(i_max_s):.2f}')
+
+    #i_max_s = _a(list(filter(lambda x: np.abs(x)<2, i_max_s)))
+
+    print(f'mean = {np.mean(i_max_s):.3f}, std = {np.std(i_max_s):.3f}')
 
     # perf of weightings
-    # weight   std
-    # const. : 0.21
-    # 
+    # n_trial = 1000
+    # weight   std        std(filtered)
+    # const. : 0.23       0.22
+    # phase  : 397.87     0.31
+    # band   : 125.09     0.22
+
     plt.figure(30)
     plt.cla()
     plt.hist(i_max_s, bins=20)
