@@ -71,7 +71,7 @@ def gen_sound_data_5p():
 
     return p, ct, r_true, ct0
 
-def add_noise_sound_data_5p(p, ct, err_pos, err_ct):
+def add_noise_sound_data(p, ct, err_pos, err_ct):
     # add measurement noise
     p_measure  = p.copy()
     ct_measure = ct.copy()
@@ -115,6 +115,24 @@ def gen_gps_data_d4():
     for j in range(4):
         p[j]  = p[j]  + err_pos * np.random.randn(3)
         ct[j] = ct[j] + err_ct  * np.random.randn()
+
+    return p, ct, r_true, ct0
+
+def gen_sound_data_2p():
+    r_true = np.array([0.1, 1.0, 0.0])
+
+    m = 2
+    p = np.zeros((m, 3))     # microphone positions           (unit: m)
+    ct = np.zeros(m)         # relative time delay of arrival (unit: s)
+
+    # exact positions and time delays
+    p[0] = _a([+0.02, 0.0, 0.0])
+    p[1] = _a([-0.02, 0.0, 0.0])
+
+    ct[0] = np.linalg.norm(r_true - p[0])
+    ct[1] = np.linalg.norm(r_true - p[1]) - ct[0]
+    ct0 = ct[0]
+    ct[0] = ct[0] - ct0
 
     return p, ct, r_true, ct0
 
@@ -172,16 +190,21 @@ def NewtonIterGPS(p, ct, r_n, ct0_n):
     return q[:3], q[3]
 
 def NewtonIterGPSConstraint(p, ct, r_n, ct0_n, p_c, n_c):
-    """ add constraint (r - p_c) * n_c = 0 """
-    q0 = np.hstack([r_n, ct0_n])
+    """ allow constraint(s) in the form (r - p_c) * n_c = 0 """
+    p_c_2d = xnp.atleast_2d(p_c)
+    n_c_2d = xnp.atleast_2d(n_c)
+    num_constraint = len(n_c_2d)
     F  = lambda q: xnp.hstack([
             GPS_F(p, ct, q[:3], q[3]),
-            xnp.dot(q[:3] - p_c, n_c)
+            [xnp.dot(q[:3] - p_c_2d[i], n_c_2d[i])
+                for i in range(num_constraint)]
         ])
+    n_c_2d_e = xnp.hstack([n_c_2d, xnp.zeros((n_c_2d.shape[0], 1))])
     dF = lambda q: xnp.vstack([
             GPS_dF_dq(p, ct, q[:3], q[3]),
-            xnp.hstack([n_c, 0])[xnp.newaxis, :]
+            n_c_2d_e
         ])
+    q0 = np.hstack([r_n, ct0_n])
     q = NewtonIter(F, dF, q0)
     return q[:3], q[3]
 
@@ -244,7 +267,9 @@ def GetK_Constraint(p, ct, r, ct0, n_c):
     ])
     dF_dp = xnp.vstack([dF_dp, xnp.zeros((1, 4*m))])
     dF_dq = GPS_dF_dq(p, ct, r, ct0)
-    dF_dq = xnp.vstack([dF_dq, xnp.hstack([n_c, 0])])
+    n_c_2d = xnp.atleast_2d(n_c)
+    n_c_2d_e = xnp.hstack([n_c_2d, xnp.zeros((n_c_2d.shape[0], 1))])
+    dF_dq = xnp.vstack([dF_dq, n_c_2d_e])
     K = - xnp.linalg.lstsq(dF_dq, dF_dp, rcond=None)[0]
     return K
 
@@ -307,7 +332,7 @@ def SolverStat(p_orig, ct_orig, r_true, ct0, err_pos, err_ct, p_c, n_c):
     n_trial = 100
     arr_pos = np.zeros((n_trial,3))
     for i in range(n_trial):
-        p, ct = add_noise_sound_data_5p(p_orig, ct_orig, err_pos, err_ct)
+        p, ct = add_noise_sound_data(p_orig, ct_orig, err_pos, err_ct)
         if solver == 'Newton':
             r_n, ct0_n = NewtonIterGPS(p, ct, r_true, ct0)
         elif solver == 'NewtonConstraint':
@@ -406,7 +431,7 @@ def TestSoundSource():
     err_pos = 0.2e-3                 # default 0.2mm
     sample_rate = 250e3              # default 250kHz
     err_ct = 340 * 2.0e-0 / sample_rate   # default 2 samples
-    p, ct = add_noise_sound_data_5p(p_orig, ct_orig, err_pos, err_ct)
+    p, ct = add_noise_sound_data(p_orig, ct_orig, err_pos, err_ct)
     #print(p)
     #print(ct)
     print('r_true', r_true)
@@ -466,6 +491,25 @@ def TestSoundSource():
     np.set_printoptions(formatter=None)
 
     globals().update(locals())  # easier for debug
+
+def TestSoundSource2D():
+    np.set_printoptions(formatter={'float': '{: 0.4f}'.format})
+
+    # gen_sound_data_2p
+    p_orig, ct_orig, r_true, ct0 = gen_sound_data_2p()
+    print('r_true', r_true)
+    #p, ct = add_noise_sound_data(p_orig, ct_orig, 0.2e-3, 340 * 2.0e-0 / 48e3)
+    p, ct = add_noise_sound_data(p_orig, ct_orig, 1e-3, 340 * 1.0 / 48e3)
+    # constraint on line passing (-1,1,0) to (1,1,0)
+    p_c = _a([[0, 1, 0], [0, 1, 0]])
+    n_c = _a([[0, 1, 0], [0, 0, 1]]) * 1e-6
+    # solve position
+    r_n, ct0_n = NewtonIterGPSConstraint(p, ct, r_true, ct0, p_c, n_c)
+    print('r_n', r_n)
+
+    # plot
+
+    np.set_printoptions(formatter=None)
 
 # for time delay estimation
 def gcc_phat(x1, x2, window = None):
@@ -673,4 +717,5 @@ if __name__ == '__main__':
     #test_find_peak_interp2()
     #test_GCC_PHAT_one()
     #test_GCC_PHAT_batch()
-    test_DOA()
+    #test_DOA()
+    TestSoundSource2D()
