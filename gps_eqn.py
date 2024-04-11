@@ -468,8 +468,8 @@ def TestSoundSource():
     globals().update(locals())  # easier for debug
 
 # for time delay estimation
-def gcc_hatt(x1, x2, window = None):
-    # the PHAT-weighted generalized cross-correlation algorithm
+def gcc_phat(x1, x2, window = None):
+    # the PHAse Transform-weighted Generalized Cross-Correlation (GCC-PHAT) algorithm
     # for signals x1 and x2
     # x1(t) = s(t) + n1(t)          # as reference
     # x2(t) = s(t - d) + n2(t)
@@ -568,7 +568,7 @@ def test_find_peak_interp2():
     assert np.abs(imax - x_peak) < 1e-14
     assert np.abs(val - v_peak) < 1e-14
 
-def test_GCC_HATT_one(d_shift = 10, b_show = True):
+def test_GCC_PHAT_one(d_shift = 10, b_show = True):
     # generate narrow-band signal
     fs = 48000            # sampling frequency
     f0 = 0.1*fs           # signal central frequency
@@ -592,7 +592,7 @@ def test_GCC_HATT_one(d_shift = 10, b_show = True):
                     np.zeros(len(n1) - len(s1) - d_ans)]) \
          + n2
 
-    gcov, i_max = gcc_hatt(x1, x2)
+    gcov, i_max = gcc_phat(x1, x2)
 
     if not b_show:
         return i_max
@@ -614,12 +614,12 @@ def test_GCC_HATT_one(d_shift = 10, b_show = True):
 
     plt.show()
 
-def test_GCC_HATT_batch():
+def test_GCC_PHAT_batch():
     n_trial = 1000
     i_max_s = np.zeros(n_trial)
     d_shift = 10
     for i in range(n_trial):
-        i_max_s[i] = test_GCC_HATT_one(d_shift, False) - d_shift
+        i_max_s[i] = test_GCC_PHAT_one(d_shift, False) - d_shift
 
     #i_max_s = _a(list(filter(lambda x: np.abs(x)<2, i_max_s)))
 
@@ -640,5 +640,5 @@ if __name__ == '__main__':
     #TestSoundSource()
     #TestGPSlike()
     #test_find_peak_interp2()
-    #test_GCC_HATT_one()
-    test_GCC_HATT_batch()
+    #test_GCC_PHAT_one()
+    test_GCC_PHAT_batch()
