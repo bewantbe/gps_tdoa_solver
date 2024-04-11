@@ -695,12 +695,6 @@ def test_GCC_PHAT_batch():
     plt.cla()
     plt.hist(i_max_s, bins=20)
 
-def DOA_2MIC_F(path_wav):
-    # read wav file
-    from scipy.io import wavfile
-    sr, x_au = wavfile.read(path_wav)
-    DOA_2MIC(x_au, sr)
-
 def DOA_2MIC(x_au, sr):
     n_len  = x_au.shape[0]
     n_ch   = x_au.shape[1]
@@ -713,12 +707,19 @@ def DOA_2MIC(x_au, sr):
         x2 = x[:, 1]
         gcov, i_peak, val_peak = gcc_phat(x1, x2)
         t = j*sz_hop/sr
-        print(f'segmentation:{j:4} = {t:.3f}s, peak at {i_peak:.2f}, val = {val_peak:.2f}')
+        rms_db = 20*np.log10(np.sqrt(np.mean(x1**2)))
+        print(f'segmentation:{j:4} = {t:.3f}s, rms {rms_db:.2f}dB, peak at {i_peak: .2f}, val = {val_peak:.2f}')
 
-def test_DOA():
+def test_DOA_simu():
     tt, x1, x2 = generate_delayed_signal_phy(10)
     x_au = np.vstack([x1, x2]).T   # (len, channel)
     DOA_2MIC(x_au, 48000)
+
+def test_DOA_wav():
+    from scipy.io import wavfile
+    wav_path = 'tictic.wav'
+    sr, x_au = wavfile.read(wav_path)
+    DOA_2MIC(x_au / 32768, sr)
 
 if __name__ == '__main__':
     #TestSoundSource()
@@ -726,5 +727,6 @@ if __name__ == '__main__':
     #test_find_peak_interp2()
     #test_GCC_PHAT_one()
     #test_GCC_PHAT_batch()
-    #test_DOA()
-    TestSoundSource2D()
+    #TestSoundSource2D()
+    #test_DOA_simu()
+    test_DOA_wav()
