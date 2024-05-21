@@ -1,0 +1,177 @@
+pysoundfinder
+==============
+
+https://github.com/rhine3/pysoundfinder
+
+algo: Bancroft (1985)
+
+
+OpenSoundscape
+==============
+https://opensoundscape.org/en/latest/
+
+Python utility library analyzing bioacoustic data.
+manipulate spectrograms
+detect vocalizations
+estimate the location of sound sources from synchronized recordings
+
+Acoustic localization
+https://opensoundscape.org/en/latest/tutorials/acoustic_localization.html
+
+
+Pyroomacoustics
+===============
+https://github.com/LCAV/pyroomacoustics
+  -- Looks good.
+
+audio signal processing for indoor applications.
+* quickly construct different simulation scenarios involving multiple sound sources and microphones in 2D and 3D rooms;
+* Reference implementations of popular algorithms for STFT, beamforming, direction finding, adaptive filtering, source separation, and single channel denoising.
+
+pip install pyroomacoustics
+
+# example
+https://mybinder.org/v2/gh/LCAV/pyroomacoustics/master?filepath=notebooks%2Fpyroomacoustics_demo.ipynb
+
+# needed file: arctic_a0010.wav
+http://festvox.org/cmu_arctic/cmu_arctic/cmu_us_bdl_arctic/
+
+# needed file: exercise_bike.wav
+https://github.com/Rumeysakeskin/Speech-Data-Augmentation/tree/main/background_noise
+
+
+Room impulse response (RIR)
+
+
+Beamforming
+  DAS beamformer: Delay-and-sum
+  MVDR beamformer: minimum variance distortionless response. a way to determine weights.
+
+Direction of Arrival (DOA)
+  SRP-PHAT
+  MUSIC
+  CSSM
+  WAVES
+  TOPS
+  FRIDA
+
+Adaptive Filtering
+  LMS (Least Mean Square): find w s.t. target ~ y = w * x
+    iterative  w(n+1) = w(n) + 2μe(n)x(n)
+    Echo Cancellation in Audio Signal using LMS Algorithm
+      https://www.bvmengineering.ac.in/misc/docs/published-20papers/etel/etel/405036.pdf
+  NLMS
+  RLS (Recursive least squares)
+
+Blind Source Separation (BSS)
+  L (number microphones) >= N (number of signals)
+  solve signals
+
+  Ref. 
+  [] Convolutive blind separation of non-stationary sources
+  [] The fundamental limitation of frequency domain blind source separation for convolutive mixtures of speech
+  [] A robust and precise method for solving the permutation problem of frequency-domain blind source separation
+
+
+
+sound-source-localization
+=========================
+https://github.com/topics/sound-source-localization
+
+
+
+Awesome Sound Source Localization
+=================================
+
+https://github.com/FYJNEVERFOLLOWS/Awesome-Sound-Source-Localization
+
+A tutorial for Sound Source Localization researchers and practitioners. The purpose of this repo is to organize the world’s resources for Sound Source Localization, and make them universally accessible and useful.
+
+Mostly DNN
+
+Ref. A Survey of Sound Source Localization with Deep Learning Methods, The Journal of the Acoustical Society of America, 2022
+
+
+Audio Processing Kit (apkit)
+============================
+https://github.com/hwp/apkit
+
+Basic I/O
+Basic Operations
+Cross-correlation and TDOA estimation
+Spatial spectral-based sound source localization
+Beamforming
+
+cross corr
+https://github.com/hwp/apkit/blob/master/apkit/cc.py
+
+
+A Linear Closed-Form Algorithm for Source Localization From Time-Differences of Arrival
+==============================================================
+https://ieeexplore.ieee.org/document/4418389
+
+ generalized cross-correlation functions
+
+ variants of GS: LEMSalg, SRP-PHAT
+
+
+Sound Source Localization
+=========================
+
+https://github.com/aishoot/Sound_Localization_Algorithms
+
+Classical algorithms of sound source localization with beamforming, TDOA and high-resolution spectral estimation.
+
+Chinese
+
+
+pyAudioAnalysis
+===============
+
+An Open-Source Python Library for Audio Signal Analysis
+
+feature extraction, classification of audio signals, supervised and unsupervised segmentation and content visualization
+
+
+Sound Finder: a new software approach for localizing animals recorded with a microphone array
+=========================================
+Wilson
+
+algo:
+
+Spectrographic cross-correlation
+
+512-point FFT, 87.5% overlap and a Hamming window,
+ temporal resolution of 2.9 ms and a frequency resolution of 43 Hz.
+
+bandpass filter
+
+Raven Pro Interactive Sound Analysis Software (version 1.4) 
+
+manually inspect (rule out artefact)
+
+time-of-arrival differences, temperature 
+GPS coordinates of each microphone
+-> into Sound Finder
+
+
+We used spectrographic cross-correlation in our analysis because the signal-to-noise ratios of our target sounds within the array recordings were too low to detect the signals from the waveforms,
+
+
+
+Matlab ArrayGUI
+===============
+
+
+Raven Pro Interactive Sound Analysis Software
+==============================================
+
+https://www.birds.cornell.edu/ccb/raven-pro/
+
+https://www.ravensoundsoftware.com/
+
+https://www.ravensoundsoftware.com/software/raven-pro/
+RAVEN PRO
+$50 - $800
+
+

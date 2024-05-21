@@ -721,6 +721,45 @@ def test_DOA_wav():
     sr, x_au = wavfile.read(wav_path)
     DOA_2MIC(x_au / 32768, sr)
 
+def test_AEC():
+    # Ref. https://pypi.org/project/speexdsp/
+    # pip install speexdsp
+
+    from speexdsp import EchoCanceller
+    from scipy.io import wavfile
+    wav_path = 'tictic.wav'
+    sr, x_au = wavfile.read(wav_path)
+
+    frame_size = 256
+    echo_canceller = EchoCanceller.create(frame_size, 2048, sr)
+
+    out_data
+    in_data = echo_canceller.process(in_data, out_data)
+
+    
+
+    # Method 1
+    # fitting room impulse response
+    # Method 2
+    # https://www.bvmengineering.ac.in/misc/docs/published-20papers/etel/etel/405036.pdf
+    # adaptive filter
+    # Method 3
+    # LMS
+    # Method 4
+    # RLS
+    # Method 5
+    # NLMS
+    # Method 6
+    # AEC
+    # Method 7
+    # NLMS
+    # Method 8
+    # AEC
+
+    # Algo 1: L1 minimization
+    # import sklearn
+    #
+
 if __name__ == '__main__':
     #TestSoundSource()
     #TestGPSlike()
