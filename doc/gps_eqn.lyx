@@ -83,8 +83,7 @@
 
 \begin_layout Standard
 \begin_inset FormulaMacro
-\newcommand{\var}{\,\textrm{var}\,}
-{\,\textrm{var}}
+\newcommand{\var}{\mathop{\mathrm{var}}}
 \end_inset
 
 
@@ -92,8 +91,7 @@
 
 \begin_layout Standard
 \begin_inset FormulaMacro
-\newcommand{\cov}{\,\textrm{cov}\,}
-{\,\textrm{cov}}
+\newcommand{\cov}{\mathop{\mathrm{cov}}}
 \end_inset
 
 
@@ -101,8 +99,7 @@
 
 \begin_layout Standard
 \begin_inset FormulaMacro
-\newcommand{\corr}{\,\textrm{corr}\,}
-{\,\textrm{corr}}
+\newcommand{\corr}{\mathop{\mathrm{corr}}}
 \end_inset
 
 
@@ -126,7 +123,7 @@
 
 \begin_layout Standard
 \begin_inset FormulaMacro
-\newcommand{\MI}[2]{\,\mathrm{I}\left(#1\,;#2\right)}
+\newcommand{\MI}[2]{\mathop{\mathrm{MI}}\left(#1\,;#2\right)}
 \end_inset
 
 
@@ -134,7 +131,7 @@
 
 \begin_layout Standard
 \begin_inset FormulaMacro
-\newcommand{\KL}[2]{\,D_{\mathrm{KL}}\left(#1\parallel#2\right)}
+\newcommand{\KL}[2]{\mathop{D_{\mathrm{KL}}}\left(#1\parallel#2\right)}
 \end_inset
 
 
@@ -142,7 +139,21 @@
 
 \begin_layout Standard
 \begin_inset FormulaMacro
-\newcommand{\d}{\,\mathrm{d}}
+\newcommand{\d}{\mathop{}\!\mathrm{d}}
+\end_inset
+
+
+\begin_inset Note Note
+status open
+
+\begin_layout Plain Layout
+For differential, 
+\backslash
+mathop{}
+\backslash
+!d
+\end_layout
+
 \end_inset
 
 
@@ -150,7 +161,17 @@
 
 \begin_layout Standard
 \begin_inset FormulaMacro
-\newcommand{\E}{\,\mathrm{E}}
+\newcommand{\E}{\mathop{}\!\mathbf{E}}
+\end_inset
+
+
+\begin_inset Note Note
+status open
+
+\begin_layout Plain Layout
+For expectation
+\end_layout
+
 \end_inset
 
 

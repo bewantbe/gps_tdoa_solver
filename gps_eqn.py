@@ -28,7 +28,6 @@ jax.config.update('jax_default_device', jax.devices('cpu')[0])
 logging.getLogger("jax").setLevel(logging.WARNING)
 
 import matplotlib.pyplot as plt
-plt.ion()
 
 # parameters (known): m = number of satellites, p = positions, t = time
 # p1, p2, ..., pm, ct1, ct2, ..., ctm
@@ -733,10 +732,8 @@ def test_AEC():
     frame_size = 256
     echo_canceller = EchoCanceller.create(frame_size, 2048, sr)
 
-    out_data
-    in_data = echo_canceller.process(in_data, out_data)
-
-    
+    #out_data
+    #in_data = echo_canceller.process(in_data, out_data)
 
     # Method 1
     # fitting room impulse response
@@ -760,7 +757,51 @@ def test_AEC():
     # import sklearn
     #
 
+def test_TDOA_5ch_rec():
+    from scipy.io import wavfile
+    # test time delay of arrival
+    fpath = 'C:/Users/xyy82/Desktop/20240516/cm_reunit3_cut2.wav'
+    # read wav
+    sr, X = wavfile.read(fpath)
+    l = X.shape[0]
+    print('sr =', sr)
+    print('X.shape =', X.shape)
+    corr1, t1, v1 = gcc_phat(X[:, 0], X[:, -1])
+    corr2, t2, v2 = gcc_phat(X[:, 1], X[:, -1])
+    corr3, t3, v3 = gcc_phat(X[:, 2], X[:, -1])
+    corr4, t4, v4 = gcc_phat(X[:, 3], X[:, -1])
+    print(f't1 = {t1:.2f} samples = {t1/sr*1000:.3f} ms')
+    print(f't2 = {t2:.2f} samples = {t2/sr*1000:.3f} ms')
+    print(f't3 = {t3:.2f} samples = {t3/sr*1000:.3f} ms')
+    print(f't4 = {t4:.2f} samples = {t4/sr*1000:.3f} ms')
+    plt.figure(1)
+    #plt.plot(np.arange(l), X[:,0])
+    plt.plot(np.arange(l), X[:,1])
+    plt.plot(np.arange(l), X[:,2])
+    plt.plot(np.arange(l), X[:,3])
+    plt.plot(np.arange(l), X[:,4])
+    plt.ylabel('signals (PCM)')
+    plt.legend(['ch2', 'ch3', 'ch4', 'ch5'])
+    
+    plt.figure(2)
+    plt.plot(corr1)
+    plt.plot(corr2)
+    plt.plot(corr3)
+    plt.plot(corr4)
+    plt.ylabel('cross-correlations')
+    plt.legend(['ch1', 'ch2', 'ch3', 'ch4'])
+
+    plt.show()
+
+def is_interactive_shell():
+    import sys
+    return hasattr(sys, 'ps1')
+
 if __name__ == '__main__':
+    if is_interactive_shell():
+        plt.ion()
+    else:
+        plt.ioff()
     #TestSoundSource()
     #TestGPSlike()
     #test_find_peak_interp2()
@@ -768,4 +809,5 @@ if __name__ == '__main__':
     #test_GCC_PHAT_batch()
     #TestSoundSource2D()
     #test_DOA_simu()
-    test_DOA_wav()
+    #test_DOA_wav()
+    test_TDOA_5ch_rec()
