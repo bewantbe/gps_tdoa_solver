@@ -520,32 +520,36 @@ def TestSoundSource2D():
     np.set_printoptions(formatter=None)
 
 # for time delay estimation
-def gcc_phat(x1, x2, window = None):
-    # the PHAse Transform-weighted Generalized Cross-Correlation (GCC-PHAT) algorithm
-    # for signals x1 and x2
-    # x1(t) = s(t) + n1(t)          # as reference
-    # x2(t) = s(t - d) + n2(t)
-    # return the time delay estimation `d` in unit of sample
-    # Ref. https://github.com/xiongyihui/tdoa/blob/master/gcc_phat.py
-    # Ref. https://ieeexplore.ieee.org/document/5670137
-    #      Analysis of the GCC-PHAT technique for multiple sources
-    # Ref. https://www.rd.ntt/cs/team_project/icl/signal/iwaenc03/cdrom/data/0013.pdf
-    #      CONSIDERING THE SECOND PEAK IN THE GCC FUNCTION FOR MULTI-SOURCE
-    #        TDOA ESTIMATION WITH A MICROPHONE ARRAY
-    # Ref. https://speechprocessingbook.aalto.fi/Enhancement/tdoa.html
-    # 11.8.3. Time-Delay of Arrival (TDoA) and Direction of Arrival (DoA) Estimation
-    # Ref. https://www.mathworks.com/help/phased/ref/gccdoaandtoa.html
-    #      Matlab - GCC DOA and TOA
+def gcc_phat(x1, x2, window = None, freq_interpolation_factor = 1):
+    """
+    The PHAse Transform-weighted Generalized Cross-Correlation (GCC-PHAT) algorithm.
+    For signals x1 and x2
+        x1(t) = s(t) + n1(t)          # as reference
+        x2(t) = s(t - d) + n2(t)
+    Return the time delay estimation `d` in unit of sample.
+    Ref. https://github.com/xiongyihui/tdoa/blob/master/gcc_phat.py
+    Ref. https://ieeexplore.ieee.org/document/5670137
+         Analysis of the GCC-PHAT technique for multiple sources
+    Ref. https://www.rd.ntt/cs/team_project/icl/signal/iwaenc03/cdrom/data/0013.pdf
+         CONSIDERING THE SECOND PEAK IN THE GCC FUNCTION FOR MULTI-SOURCE
+           TDOA ESTIMATION WITH A MICROPHONE ARRAY
+    Ref. https://speechprocessingbook.aalto.fi/Enhancement/tdoa.html
+    11.8.3. Time-Delay of Arrival (TDoA) and Direction of Arrival (DoA) Estimation
+    Ref. https://www.mathworks.com/help/phased/ref/gccdoaandtoa.html
+         Matlab - GCC DOA and TOA
+    """
     
     if len(x1.shape) >= 2:
         x1 = x1.flatten()
     if len(x2.shape) >= 2:
         x2 = x2.flatten()
-    n = len(x1)
+    x1 = x1 - np.mean(x1)
+    x2 = x2 - np.mean(x2)
+    n = max(len(x1), len(x2))
     if window is None:
         window = np.ones(n)
-    xf1 = np.fft.fft(x1 * window)
-    xf2 = np.fft.fft(x2 * window)
+    xf1 = np.fft.fft(x1 * window, n)
+    xf2 = np.fft.fft(x2 * window, n)
     cxf1 = np.conj(xf1)
 
     weight = 1                         # correlation, most stable
@@ -556,10 +560,27 @@ def gcc_phat(x1, x2, window = None):
     # Ref. Time delay estimation by generalized cross correlation methods
     #      https://ieeexplore.ieee.org/document/1164314
     cross_spectrum = cxf1 * xf2 * weight
+    # zero-padding the spectrum
+    if freq_interpolation_factor > 1:
+        if n % 2 == 0:
+            # [0 1 2 3] to
+            # [0 1 2/2 _ _ _ 2/2 3]
+            hi = cross_spectrum[n//2] / 2
+            cross_spectrum = np.hstack(
+                [cross_spectrum[:n//2], [hi],
+                 np.zeros(n * (freq_interpolation_factor - 1) - 1),
+                 [hi], cross_spectrum[n//2+1:]])
+        else:
+            # [0 1 2 3 4] to
+            # [0 1 2 _ _ _ _ _ 3 4]
+            cross_spectrum = np.hstack(
+                [cross_spectrum[:n//2+1],
+                 np.zeros(n * (freq_interpolation_factor - 1)),
+                 cross_spectrum[n//2+1:]])
     #crosscorrelation = np.fft.ifft(crossspectrum / np.abs(crossspectrum))
     cross_correlation = np.real(np.fft.ifft(cross_spectrum))
     i_max, val_max = find_peak_interp2(cross_correlation)
-    return cross_correlation, i_max, val_max
+    return cross_correlation, i_max / freq_interpolation_factor, val_max
 
 def find_peak_interp2(x):
     # Find the peak in data points in x, interpolate it with quadratic function
@@ -764,12 +785,12 @@ def test_TDOA_5ch_rec():
     # read wav
     sr, X = wavfile.read(fpath)
     l = X.shape[0]
-    print('sr =', sr)
+    print(f'sr = {sr}.   Expected range of difference: 0.0 ~ {0.2/340*1000:.3f} ms.')
     print('X.shape =', X.shape)
-    corr1, t1, v1 = gcc_phat(X[:, 0], X[:, -1])
-    corr2, t2, v2 = gcc_phat(X[:, 1], X[:, -1])
-    corr3, t3, v3 = gcc_phat(X[:, 2], X[:, -1])
-    corr4, t4, v4 = gcc_phat(X[:, 3], X[:, -1])
+    corr1, t1, v1 = gcc_phat(X[:, 0], X[:, -1], freq_interpolation_factor=4)
+    corr2, t2, v2 = gcc_phat(X[:, 1], X[:, -1], freq_interpolation_factor=4)
+    corr3, t3, v3 = gcc_phat(X[:, 2], X[:, -1], freq_interpolation_factor=4)
+    corr4, t4, v4 = gcc_phat(X[:, 3], X[:, -1], freq_interpolation_factor=4)
     print(f't1 = {t1:.2f} samples = {t1/sr*1000:.3f} ms')
     print(f't2 = {t2:.2f} samples = {t2/sr*1000:.3f} ms')
     print(f't3 = {t3:.2f} samples = {t3/sr*1000:.3f} ms')
